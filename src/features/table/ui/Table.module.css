@@ -599,9 +599,6 @@
   .playerForms {
     grid-template-columns: repeat(3, 1fr);
   }
-  .playersGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
   .clockPanel {
     padding: 22px;
   }
@@ -648,4 +645,48 @@
 }
 .manyPlayers .playerTile > b {
   font-size: 24px;
+}
+
+.playersGrid[data-players='3'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.playersGrid[data-players='3'] > :nth-child(1) {
+  grid-column: 1 / span 2;
+}
+.playersGrid[data-players='3'] > :nth-child(2) {
+  grid-column: 3 / span 2;
+}
+.playersGrid[data-players='3'] > :nth-child(3) {
+  grid-column: 2 / span 2;
+  grid-row: 2;
+}
+.playersGrid[data-players='4'] > :nth-child(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.playersGrid[data-players='4'] > :nth-child(4) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.manyPlayers > :nth-child(4) {
+  grid-column: 3;
+  grid-row: 2;
+}
+.playersGrid[data-players='5'] > :nth-child(5) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.playersGrid[data-players='6'] > :nth-child(5) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.playersGrid[data-players='6'] > :nth-child(6) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.randomHero {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 4px;
+  font-size: 12px;
 }

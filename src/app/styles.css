@@ -22,6 +22,8 @@
   color-scheme: light;
 }
 * {
+  -webkit-user-select: inherit;
+  user-select: inherit;
   box-sizing: border-box;
 }
 body {
@@ -49,9 +51,6 @@ button {
   font-weight: 500;
   touch-action: manipulation;
 }
-button:hover {
-  background: #eee1ca;
-}
 button:disabled {
   opacity: 0.45;
   cursor: default;
@@ -60,9 +59,6 @@ button.primary {
   background: var(--accent);
   color: #fffaf0;
   border-color: var(--accent);
-}
-button.primary:hover {
-  background: var(--accent-hover);
 }
 button.danger {
   background: var(--danger);
@@ -119,5 +115,33 @@ svg {
   * {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Static controls should feel like an app; editable/copyable content remains native. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+input,
+textarea,
+[contenteditable]:not([contenteditable='false']),
+[data-selectable] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+button[data-pressed='true']:not(:disabled) {
+  filter: brightness(0.92);
+  transform: translateY(1px);
+}
+@media (any-hover: hover) and (any-pointer: fine) {
+  :root[data-input='mouse'] button:not(:disabled):hover {
+    background: #eee1ca;
+  }
+  :root[data-input='mouse'] button.primary:not(:disabled):hover {
+    background: var(--accent-hover);
   }
 }

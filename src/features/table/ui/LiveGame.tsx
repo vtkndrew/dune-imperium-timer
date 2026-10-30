@@ -83,10 +83,15 @@ export function LiveGame({
           ◇
         </div>
       </div>
-      <div className={`${styles.playersGrid} ${game.players.length > 4 ? styles.manyPlayers : ''}`}>
+      <div
+        data-players={game.players.length}
+        className={`${styles.playersGrid} ${game.players.length > 4 ? styles.manyPlayers : ''}`}
+      >
         {game.players.map((p, i) => (
           <div
             key={p.id}
+            data-seat={i + 1}
+            data-active={clock.owner === p.id}
             className={`${styles.playerTile} ${clock.owner === p.id ? styles.activePlayer : ''}`}
             style={{ borderTopColor: p.color }}
           >

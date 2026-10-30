@@ -2,7 +2,10 @@ import { useState } from 'react';
 
 import { HEROES, heroFor, makePlayer, validSettings, type Settings } from '@/entities/game';
 
+import { SandChoice } from './SandChoice';
 import styles from './Table.module.css';
+import { availableHeroes } from '../model/random';
+import { useSandChoice } from '../model/useSandChoice';
 
 export function Setup({
   settings,
@@ -16,6 +19,7 @@ export function Setup({
   disabled: boolean;
 }) {
   const [draft, setDraft] = useState(settings);
+  const random = useSandChoice();
 
   const change = (next: Settings) => {
     setDraft(next);
@@ -157,6 +161,26 @@ export function Setup({
                 ))}
               </select>
             </label>
+            <button
+              className={styles.randomHero}
+              disabled={disabled}
+              onClick={(e) => {
+                e.currentTarget.focus();
+                const heroes = availableHeroes(draft.players);
+
+                random.begin(
+                  `Герой · ${player.name}`,
+                  heroes.map((h) => h.name),
+                  (index) => {
+                    const hero = heroes[index];
+
+                    playerChange(i, { heroId: hero.id, heroName: hero.name });
+                  },
+                );
+              }}
+            >
+              Случайный герой
+            </button>
             <label className={styles.playerMinutes}>
               Личное время{' '}
               <span>
@@ -190,14 +214,14 @@ export function Setup({
           </select>
         </label>
         <button
-          onClick={() => {
-            const values = new Uint32Array(1);
-
-            crypto.getRandomValues(values);
-            change({
-              ...draft,
-              first: Math.floor((values[0] / 4294967296) * draft.players.length),
-            });
+          disabled={disabled}
+          onClick={(e) => {
+            e.currentTarget.focus();
+            random.begin(
+              'Первый игрок',
+              draft.players.map((p) => p.name),
+              (first) => change({ ...draft, first }),
+            );
           }}
         >
           ⚄ Случайно
@@ -211,7 +235,8 @@ export function Setup({
         </p>
         <p>
           В наборе: база, Икс, Бессмертие и совместимые герои «Кровных уз». Для Коты нужны
-          технологии. Автома и командные правила «Восстания» не учитываются.
+          технологии. Автоматический соперник — Дом Хагаль — не поддерживается. Командные правила
+          «Восстания» не учитываются.
         </p>
         {draft.players.map((p) => (
           <p key={p.id}>
@@ -228,6 +253,7 @@ export function Setup({
         Начать партию <span>→</span>
       </button>
       <p className={styles.footnote}>Без регистрации · Работает офлайн после загрузки</p>
+      {random.choice && <SandChoice choice={random.choice} onClose={random.cancel} />}
     </section>
   );
 }

@@ -7,6 +7,7 @@ import {
   startGame,
   statistics,
   transition,
+  upgradeDefaultColors,
   type AppData,
   type Command,
   type Game,
@@ -32,32 +33,6 @@ export function useTable() {
   const audio = useRef<AudioContext | null>(null);
   const alerted = useRef(new Set<string>());
 
-  useEffect(() => {
-    let mounted = true;
-
-    void repo.current
-      .read()
-      .then((result) => {
-        if (!mounted) {
-          return;
-        }
-
-        latest.current = result.data;
-        saved.current = result.revision ? result.data : null;
-        revision.current = result.revision;
-        setData(result.data);
-        setReady(true);
-      })
-      .catch((e) => {
-        if (mounted) {
-          setError(e instanceof Error ? e.message : 'Не удалось открыть хранилище.');
-        }
-      });
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 200);
 
@@ -94,6 +69,41 @@ export function useTable() {
         }
       });
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    void repo.current
+      .read()
+      .then((result) => {
+        if (!mounted) {
+          return;
+        }
+
+        const settings = upgradeDefaultColors(result.data.settings);
+        const next = settings === result.data.settings ? result.data : { ...result.data, settings };
+
+        latest.current = next;
+        saved.current = result.revision ? result.data : null;
+        revision.current = result.revision;
+        setData(next);
+
+        if (next !== result.data) {
+          enqueue(next);
+        }
+
+        setReady(true);
+      })
+      .catch((e) => {
+        if (mounted) {
+          setError(e instanceof Error ? e.message : 'Не удалось открыть хранилище.');
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [enqueue]);
   const commit = useCallback(
     (next: AppData) => {
       latest.current = next;
