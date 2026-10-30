@@ -1,0 +1,651 @@
+.setup,
+.live {
+  width: 100%;
+}
+.eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+  line-height: 1.7;
+}
+.intro {
+  padding: 22px 0 28px;
+}
+.intro h2,
+.detailTitle {
+  font-family: Georgia, serif;
+  font-size: clamp(30px, 6vw, 43px);
+  font-weight: 500;
+  line-height: 1.15;
+  margin: 12px 0;
+}
+.intro p {
+  font-size: 14px;
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+.configuration {
+  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.settingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.settingRow small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+  font-size: 11px;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.stepper button {
+  padding: 4px;
+  width: 42px;
+  font-size: 22px;
+}
+.stepper b {
+  font-size: 24px;
+}
+.timeSetting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 22px 0 12px;
+  font-size: 13px;
+}
+.timeSetting > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timeSetting input {
+  width: 76px;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+.presets {
+  display: flex;
+  gap: 6px;
+}
+.presets button {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 2px;
+  font-size: 12px;
+  min-height: 38px;
+}
+.presets button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--surface);
+  border-color: var(--ink);
+}
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+.sectionHeading h3 {
+  margin: 0 0 12px;
+}
+.sectionHeading span {
+  color: var(--muted);
+  font-size: 10px;
+  text-align: right;
+}
+.playerForms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.playerForm {
+  margin: 0;
+  padding: 12px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.playerForm legend {
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.firstBadge {
+  font-size: 9px;
+  color: var(--accent);
+  margin-left: 8px;
+}
+.playerForm label {
+  display: block;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 12px;
+}
+.playerForm select {
+  margin-top: 5px;
+  font-size: 12px;
+  padding: 10px 3px;
+}
+.nameColor {
+  display: flex;
+  gap: 5px;
+}
+.nameColor input:first-child {
+  font-size: 13px;
+  padding: 9px 7px;
+}
+.nameColor input[type='color'] {
+  padding: 3px;
+  width: 27px;
+  min-width: 27px;
+  border: 0;
+  background: transparent;
+}
+.playerMinutes > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+}
+.playerMinutes input {
+  width: 70px;
+  padding: 8px;
+  font-size: 13px;
+}
+.firstChoice {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  margin: 22px 0;
+}
+.firstChoice label {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+.firstChoice select {
+  margin-top: 7px;
+  font-size: 13px;
+}
+.firstChoice button {
+  font-size: 13px;
+  white-space: nowrap;
+}
+.notes {
+  border-top: 1px solid var(--line);
+  padding: 16px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.notes summary {
+  cursor: pointer;
+  line-height: 1.5;
+}
+.notes p {
+  line-height: 1.6;
+}
+.start {
+  width: 100%;
+  margin-top: 16px;
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 16px;
+}
+.start span {
+  margin-left: auto;
+  font-size: 20px;
+}
+.footnote {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+  margin: 14px 0 22px;
+}
+.phaseBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 20px 0 14px;
+  font-size: 10px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.phaseBar b {
+  font-size: 17px;
+  color: var(--ink);
+  margin-left: 4px;
+}
+.phaseBar strong {
+  font-size: 12px;
+  color: var(--ink);
+}
+.clockPanel {
+  background: var(--ink);
+  color: #fff7e6;
+  border-radius: 14px;
+  padding: 24px 16px 20px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.clockLabel {
+  font-size: 10px;
+  letter-spacing: 0.19em;
+  color: #d6c0a5;
+}
+.clockPanel h2 {
+  font-size: 20px;
+  font-weight: 500;
+  margin: 12px 0 4px;
+  overflow-wrap: anywhere;
+}
+.bigTime {
+  font-size: clamp(64px, 18vw, 106px);
+  letter-spacing: -0.055em;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.18;
+  position: relative;
+  z-index: 1;
+}
+.clockCaption {
+  font-size: 11px;
+  color: #d6c0a5;
+  margin-top: 8px;
+  position: relative;
+  z-index: 1;
+}
+.clockOrnament {
+  position: absolute;
+  right: -22px;
+  top: 50px;
+  font-size: 170px;
+  line-height: 1;
+  opacity: 0.07;
+  transform: rotate(20deg);
+  pointer-events: none;
+}
+.paused {
+  background: #68604f;
+}
+.overtime {
+  color: #ffb2a4;
+}
+.negative {
+  color: var(--danger);
+}
+.playersGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin: 14px 0;
+}
+.playerTile {
+  border: 1px solid var(--line);
+  border-top: 3px solid;
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 10px 12px;
+  min-width: 0;
+}
+.playerTile > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+}
+.playerTile strong {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.playerTile > div span {
+  color: var(--accent);
+  font-size: 14px;
+}
+.playerTile > b {
+  display: block;
+  font-size: 27px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+.playerTile small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.activePlayer {
+  box-shadow: 0 0 0 1px var(--accent);
+  background: #fff6e5;
+}
+.mainActions {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 8px;
+}
+.mainActions button {
+  min-height: 54px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.tools {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.tools button {
+  flex: 1;
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 9px 7px;
+  min-height: 42px;
+}
+.phaseHint {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0;
+}
+.abilityCard {
+  border-left: 3px solid var(--accent);
+  padding: 14px 16px;
+  background: #f0e1c9;
+  border-radius: 0 8px 8px 0;
+}
+.abilityCard h3 {
+  margin: 6px 0;
+}
+.abilityCard p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 7px 0;
+}
+.abilityCard a {
+  font-size: 11px;
+}
+.sharedHint {
+  font-size: 12px;
+  color: var(--muted);
+}
+.sharedHint p {
+  line-height: 1.5;
+}
+.gameFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted);
+  padding: 10px 0 20px;
+  font-size: 10px;
+}
+.gameFooter button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 8px 0;
+  font-size: 10px;
+  text-decoration: underline;
+  min-height: 44px;
+}
+.archiveHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 28px 0 20px;
+}
+.archiveHeading h2 {
+  font:
+    500 28px Georgia,
+    serif;
+  margin: 10px 0;
+}
+.archiveHeading button {
+  font-size: 11px;
+  padding: 8px;
+}
+.empty {
+  text-align: center;
+  padding: 50px 16px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.empty > span {
+  font-size: 40px;
+}
+.empty h3 {
+  font:
+    500 23px Georgia,
+    serif;
+}
+.empty p {
+  font-size: 13px;
+  color: var(--muted);
+}
+.historyList {
+  display: grid;
+  gap: 12px;
+}
+.historyCard {
+  text-align: left;
+  padding: 18px;
+  background: var(--surface);
+  display: grid;
+  gap: 10px;
+}
+.historyCard > span {
+  font-size: 10px;
+  color: var(--muted);
+}
+.historyCard > strong {
+  font-size: 14px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.historyCard > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.historyCard > small {
+  font-size: 11px;
+  color: var(--accent);
+}
+.historyCard > div b {
+  font-variant-numeric: tabular-nums;
+}
+.back {
+  display: block;
+  margin: 16px 0;
+  padding-left: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+}
+.detailTitle {
+  font-size: 33px;
+  margin: 12px 0 24px;
+}
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 18px;
+  gap: 22px;
+}
+.summaryGrid small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.summaryGrid strong {
+  display: block;
+  font-size: 28px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 550;
+}
+.resultCard {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  background: #e9dbc1;
+  border-radius: 10px;
+  padding: 18px;
+  margin: 16px 0 26px;
+}
+.resultCard small {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+}
+.resultCard strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.resultCard button {
+  font-size: 11px;
+  padding: 8px;
+  background: transparent;
+}
+.statCard {
+  border: 1px solid var(--line);
+  border-left: 4px solid;
+  padding: 16px;
+  border-radius: 9px;
+  background: var(--surface);
+}
+.statCard header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.statCard header strong {
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+.statCard header small {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 5px;
+}
+.statCard header b {
+  font-size: 24px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.statCard dl {
+  margin: 14px 0 0;
+}
+.statCard dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.9;
+}
+.statCard dt {
+  color: var(--muted);
+}
+.statCard dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+@media (min-width: 700px) {
+  .intro {
+    padding-top: 30px;
+  }
+  .playerForms {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .playersGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .clockPanel {
+    padding: 22px;
+  }
+  .bigTime {
+    font-size: 104px;
+  }
+  .configuration {
+    padding: 24px;
+  }
+  .summaryGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+@media (max-width: 350px) {
+  .playerForms {
+    gap: 8px;
+  }
+  .playerForm {
+    padding: 9px;
+  }
+  .firstBadge {
+    display: block;
+    margin: 2px 0;
+  }
+  .presets button {
+    font-size: 10px;
+  }
+  .phaseBar strong {
+    font-size: 10px;
+  }
+  .gameFooter {
+    flex-wrap: wrap;
+  }
+  .stepper {
+    gap: 10px;
+  }
+}
+
+.manyPlayers {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.manyPlayers .playerTile {
+  padding: 8px;
+}
+.manyPlayers .playerTile > b {
+  font-size: 24px;
+}
