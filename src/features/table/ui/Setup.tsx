@@ -1,7 +1,17 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
-import { HEROES, heroFor, makePlayer, validSettings, type Settings } from '@/entities/game';
+import {
+  COLORS,
+  HEROES,
+  heroFor,
+  makePlayer,
+  nameKey,
+  validSettings,
+  type Settings,
+  type Profile,
+} from '@/entities/game';
 
+import { ColorPicker, ProfilePicker, ExpansionPicker } from './Choices';
 import { SandChoice } from './SandChoice';
 import styles from './Table.module.css';
 import { availableHeroes } from '../model/random';
@@ -9,31 +19,42 @@ import { useSandChoice } from '../model/useSandChoice';
 
 export function Setup({
   settings,
+  profiles,
   onChange,
   onStart,
   disabled,
 }: {
   settings: Settings;
+  profiles: Profile[];
   onChange: (value: Settings) => void;
   onStart: () => void;
   disabled: boolean;
 }) {
   const [draft, setDraft] = useState(settings);
   const random = useSandChoice();
+  const [picker, setPicker] = useState<{ index: number; kind: 'profile' | 'color' } | null>(null);
+  const unique = new Set(draft.players.map((p) => nameKey(p.name))).size === draft.players.length;
+  const closePicker = useCallback(() => setPicker(null), []);
 
-  const change = (next: Settings) => {
-    setDraft(next);
+  const change = useCallback(
+    (next: Settings) => {
+      setDraft(next);
 
-    if (validSettings(next)) {
-      onChange({ ...next, sound: settings.sound, vibration: settings.vibration });
-    }
-  };
+      if (validSettings(next)) {
+        onChange({ ...next, sound: settings.sound, vibration: settings.vibration });
+      }
+    },
+    [onChange, settings.sound, settings.vibration],
+  );
 
-  const playerChange = (index: number, patch: Partial<Settings['players'][number]>) =>
-    change({
-      ...draft,
-      players: draft.players.map((p, i) => (i === index ? { ...p, ...patch } : p)),
-    });
+  const playerChange = useCallback(
+    (index: number, patch: Partial<Settings['players'][number]>) =>
+      change({
+        ...draft,
+        players: draft.players.map((p, i) => (i === index ? { ...p, ...patch } : p)),
+      }),
+    [change, draft],
+  );
 
   const count = (amount: number) => {
     const players = draft.players.slice(0, amount);
@@ -42,7 +63,12 @@ export function Setup({
       players.push(makePlayer(players.length, draft.minutes));
     }
 
-    change({ ...draft, players, first: Math.min(draft.first, amount - 1) });
+    const available = COLORS.slice(0, amount > 4 ? 6 : 4);
+    const colored = players.map((p, i) =>
+      available.includes(p.color) ? p : { ...p, color: COLORS[i] },
+    );
+
+    change({ ...draft, players: colored, first: Math.min(draft.first, amount - 1) });
   };
 
   const minutes = (value: number) =>
@@ -51,6 +77,27 @@ export function Setup({
       minutes: value,
       players: draft.players.map((p) => ({ ...p, initialMs: value * 60_000 })),
     });
+
+  const selectColor = useCallback(
+    (color: string) => {
+      if (picker) {
+        playerChange(picker.index, { color });
+      }
+    },
+    [picker, playerChange],
+  );
+  const selectProfile = useCallback(
+    (profile: { id?: string; name: string }) => {
+      if (picker) {
+        playerChange(picker.index, { name: profile.name, profileId: profile.id });
+      }
+    },
+    [picker, playerChange],
+  );
+  const changeExpansions = useCallback(
+    (expansions: NonNullable<Settings['expansions']>) => change({ ...draft, expansions }),
+    [change, draft],
+  );
 
   return (
     <section className={styles.setup}>
@@ -126,18 +173,25 @@ export function Setup({
               {draft.first === i && <span className={styles.firstBadge}>Первый</span>}
             </legend>
             <div className={styles.nameColor}>
-              <input
+              <button
                 aria-label={`Имя игрока ${i + 1}`}
-                maxLength={60}
-                value={player.name}
-                onChange={(e) => playerChange(i, { name: e.target.value })}
-              />
-              <input
-                type="color"
+                onClick={(e) => {
+                  e.currentTarget.focus();
+                  setPicker({ index: i, kind: 'profile' });
+                }}
+              >
+                {player.name} ▾
+              </button>
+              <button
                 aria-label={`Цвет игрока ${i + 1}`}
-                value={player.color}
-                onChange={(e) => playerChange(i, { color: e.target.value })}
-              />
+                style={{ background: player.color, minWidth: 44, padding: 0 }}
+                onClick={(e) => {
+                  e.currentTarget.focus();
+                  setPicker({ index: i, kind: 'color' });
+                }}
+              >
+                <span aria-hidden="true">◇</span>
+              </button>
             </div>
             <label>
               Герой
@@ -227,6 +281,7 @@ export function Setup({
           ⚄ Случайно
         </button>
       </div>
+      <ExpansionPicker value={draft.expansions ?? []} onChange={changeExpansions} />
       <details className={styles.notes}>
         <summary>Перед началом партии</summary>
         <p>
@@ -244,15 +299,40 @@ export function Setup({
           </p>
         ))}
       </details>
+      {!unique && <p role="alert">Выберите разных игроков: имена должны быть уникальны.</p>}
       {!validSettings(draft) && <p role="alert">Укажите имена и целое число минут от 1 до 1440.</p>}
       <button
         className={`primary ${styles.start}`}
-        disabled={disabled || !validSettings(draft)}
+        disabled={disabled || !unique || !validSettings(draft)}
         onClick={onStart}
       >
         Начать партию <span>→</span>
       </button>
       <p className={styles.footnote}>Без регистрации · Работает офлайн после загрузки</p>
+      {picker?.kind === 'color' && (
+        <ColorPicker
+          count={draft.players.length}
+          value={draft.players[picker.index].color}
+          onChoose={selectColor}
+          onClose={closePicker}
+        />
+      )}
+      {picker?.kind === 'profile' && (
+        <ProfilePicker
+          profiles={profiles}
+          excluded={draft.players
+            .filter((_, i) => i !== picker.index)
+            .map(
+              (p) =>
+                profiles.find(
+                  (profile) =>
+                    profile.id === p.profileId || nameKey(profile.name) === nameKey(p.name),
+                )?.id ?? '',
+            )}
+          onChoose={selectProfile}
+          onClose={closePicker}
+        />
+      )}
       {random.choice && <SandChoice choice={random.choice} onClose={random.cancel} />}
     </section>
   );

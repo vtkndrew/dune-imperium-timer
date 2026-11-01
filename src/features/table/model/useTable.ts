@@ -2,6 +2,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   GameRepository,
+  bindPlayers,
+  cleanName,
+  nameKey,
+  renameProfile,
+  manualGame,
+  prepareImport,
+  resultProblems,
+  suggestedRanks,
   initialData,
   sameGame,
   startGame,
@@ -10,7 +18,8 @@ import {
   upgradeDefaultColors,
   type AppData,
   type Command,
-  type Game,
+  type ArchivedGame,
+  type ResultDraft,
   type Settings,
 } from '@/entities/game';
 import { StorageConflict } from '@/shared/lib';
@@ -182,7 +191,7 @@ export function useTable() {
   }, []);
   const dispatch = useCallback(
     (command: Command) => {
-      if (atomic.current || conflict || !latest.current.current) {
+      if (command.type === 'finish' || atomic.current || conflict || !latest.current.current) {
         return;
       }
 
@@ -212,15 +221,40 @@ export function useTable() {
       return;
     }
 
+    const bound = bindPlayers(latest.current.profiles, latest.current.settings.players);
+
+    if (new Set(bound.players.map((p) => p.profileId)).size !== bound.players.length) {
+      return;
+    }
+
     unlockAudio();
     alerted.current.clear();
-    commit({ ...latest.current, current: startGame(latest.current.settings, Date.now()) });
+    const settings = { ...latest.current.settings, players: bound.players };
+
+    commit({
+      ...latest.current,
+      profiles: bound.profiles,
+      settings,
+      current: startGame(settings, Date.now()),
+    });
   }, [commit, conflict, unlockAudio]);
   const configure = useCallback(
     (settings: Settings) => {
-      if (!atomic.current && !conflict) {
-        commit({ ...latest.current, settings });
+      if (atomic.current || conflict) {
+        return;
       }
+
+      if (new Set(settings.players.map((p) => nameKey(p.name))).size !== settings.players.length) {
+        return;
+      }
+
+      const bound = bindPlayers(latest.current.profiles, settings.players);
+
+      commit({
+        ...latest.current,
+        profiles: bound.profiles,
+        settings: { ...settings, players: bound.players },
+      });
     },
     [commit, conflict],
   );
@@ -230,11 +264,11 @@ export function useTable() {
         throw new Error('Сначала дождитесь сохранения или загрузите актуальные данные.');
       }
 
-      await flush();
       atomic.current = true;
       setSaving(true);
 
       try {
+        await flush();
         const next = build(latest.current);
 
         revision.current = await repo.current.save(revision.current, next, saved.current);
@@ -259,15 +293,30 @@ export function useTable() {
     [conflict, flush],
   );
   const importGame = useCallback(
-    async (game: Game, replace: boolean) => {
+    async (source: ArchivedGame, replace: boolean, mapping: Record<string, string> = {}) => {
       await archiveWrite((current) => {
-        if (current.current?.id === game.id) {
-          throw new Error('Эта партия сейчас идёт. Импорт не может заменить текущую игру.');
+        if (
+          current.current?.id === source.id ||
+          current.drafts.some((d) => d.game.id === source.id)
+        ) {
+          throw new Error(
+            'Для этой партии есть текущая игра или черновик. Сначала завершите или удалите черновик.',
+          );
         }
 
-        const existing = current.archive.find((a) => a.game.id === game.id);
+        const bound = prepareImport(current, source, mapping);
 
-        if (existing && sameGame(existing.game, game)) {
+        if (
+          new Set(bound.game.players.map((p) => p.profileId)).size !== bound.game.players.length
+        ) {
+          throw new Error(
+            'Один профиль нельзя использовать для двух участников партии. Исправьте привязку.',
+          );
+        }
+
+        const existing = current.archive.find((a) => a.game.id === source.id);
+
+        if (existing && sameGame(existing.game, bound.game)) {
           return current;
         }
 
@@ -277,52 +326,159 @@ export function useTable() {
 
         return {
           ...current,
+          profiles: bound.profiles,
           archive: [
-            { game, importedAt: Date.now() },
-            ...current.archive.filter((a) => a.game.id !== game.id),
+            { game: bound.game, importedAt: Date.now() },
+            ...current.archive.filter((a) => a.game.id !== source.id),
           ],
         };
       });
     },
     [archiveWrite],
   );
-  const result = useCallback(
-    async (id: string, winnerIds: string[] | null) => {
+  const rename = useCallback(
+    async (id: string, name: string) => {
+      await archiveWrite((current) => renameProfile(current, id, cleanName(name)));
+    },
+    [archiveWrite],
+  );
+  const remove = useCallback(
+    async (id: string) => {
       await archiveWrite((current) => ({
         ...current,
-        archive: current.archive.map((entry) =>
-          entry.game.id === id
-            ? { ...entry, game: { ...entry.game, winnerIds, updatedAt: Date.now() } }
-            : entry,
-        ),
+        archive: current.archive.filter((e) => e.game.id !== id),
+        drafts: current.drafts.filter((d) => d.game.id !== id),
       }));
     },
     [archiveWrite],
   );
-  const finish = useCallback(
-    async (winnerIds: string[] | null) => {
-      let id = '';
-
-      await archiveWrite((current) => {
-        if (!current.current) {
-          throw new Error('Партия уже завершена.');
-        }
-
-        const game = { ...transition(current.current, { type: 'finish' }, Date.now()), winnerIds };
-
-        id = game.id;
-
-        return {
-          ...current,
-          current: null,
-          archive: [{ game, importedAt: null }, ...current.archive],
-        };
-      });
-
-      return id;
+  const discardDraft = useCallback(
+    async (id: string) => {
+      await archiveWrite((current) => ({
+        ...current,
+        drafts: current.drafts.filter((d) => d.id !== id),
+      }));
     },
     [archiveWrite],
   );
+  const edit = useCallback(
+    async (id?: string) => {
+      let draftId = '';
+
+      await archiveWrite((current) => {
+        const existing = current.drafts.find((d) => d.editingId === id);
+
+        if (existing) {
+          draftId = existing.id;
+
+          return current;
+        }
+
+        const entry = current.archive.find((e) => e.game.id === id);
+        const bound = bindPlayers(current.profiles, current.settings.players);
+        const game = entry ? structuredClone(entry.game) : manualGame(bound.players);
+
+        game.resultsConfirmed = false;
+        const draft = {
+          id: crypto.randomUUID(),
+          game,
+          editingId: entry?.game.id ?? null,
+          importedAt: entry?.importedAt ?? null,
+        };
+
+        draftId = draft.id;
+
+        return { ...current, profiles: bound.profiles, drafts: [...current.drafts, draft] };
+      });
+
+      return draftId;
+    },
+    [archiveWrite],
+  );
+  const updateDraft = useCallback(
+    (draft: ResultDraft) => {
+      if (atomic.current || conflict || !latest.current.drafts.some((d) => d.id === draft.id)) {
+        return;
+      }
+
+      const bound = bindPlayers(latest.current.profiles, draft.game.players);
+      const next = {
+        ...draft,
+        game: {
+          ...draft.game,
+          players: bound.players,
+          resultsConfirmed: false,
+          updatedAt: Date.now(),
+        },
+      };
+
+      commit({
+        ...latest.current,
+        profiles: bound.profiles,
+        drafts: latest.current.drafts.map((d) => (d.id === draft.id ? next : d)),
+      });
+    },
+    [commit, conflict],
+  );
+  const completeDraft = useCallback(
+    async (id: string) => {
+      let gameId = '';
+
+      await archiveWrite((current) => {
+        const draft = current.drafts.find((d) => d.id === id);
+
+        if (!draft) {
+          throw new Error('Черновик не найден.');
+        }
+
+        const game = {
+          ...draft.game,
+          rankings: { ...suggestedRanks(draft.game).ranks, ...draft.game.rankings },
+        };
+        const problems = resultProblems(game);
+
+        if (problems.length) {
+          throw new Error(problems[0]);
+        }
+
+        game.winnerIds = game.players.filter((p) => game.rankings[p.id] === 1).map((p) => p.id);
+        game.resultsConfirmed = true;
+        game.updatedAt = Date.now();
+        gameId = game.id;
+
+        return {
+          ...current,
+          drafts: current.drafts.filter((d) => d.id !== id),
+          archive: [
+            { game, importedAt: draft.importedAt },
+            ...current.archive.filter((e) => e.game.id !== game.id),
+          ],
+        };
+      });
+
+      return gameId;
+    },
+    [archiveWrite],
+  );
+  const finish = useCallback(async () => {
+    const current = latest.current;
+
+    if (atomic.current || conflict || !current.current) {
+      throw new Error('Партия уже остановлена или сохранение ещё не завершено.');
+    }
+
+    const game = transition(current.current, { type: 'finish' }, Date.now());
+    const id = crypto.randomUUID();
+
+    // Freeze the clocks immediately. A failed write keeps this exact draft available for retry.
+    commit({
+      ...current,
+      current: null,
+      drafts: [...current.drafts, { id, game, editingId: null, importedAt: null }],
+    });
+
+    return id;
+  }, [commit, conflict]);
 
   useEffect(() => {
     const game = data.current;
@@ -414,7 +570,12 @@ export function useTable() {
     begin,
     configure,
     importGame,
-    result,
+    rename,
+    remove,
+    edit,
+    updateDraft,
+    completeDraft,
+    discardDraft,
     finish,
     flush,
     retry,

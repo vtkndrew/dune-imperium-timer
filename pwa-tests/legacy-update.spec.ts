@@ -85,9 +85,49 @@ test('previous release updates without changing current or archived snapshots', 
   await page.getByRole('button', { name: 'Позже' }).click();
   await expect(page.locator('html')).not.toHaveAttribute('data-pwa-test-build', 'two');
   await page.getByRole('button', { name: 'Обновить', exact: true }).click();
+  await page.addInitScript(() => {
+    if (localStorage.getItem('fixture-migration-failure') !== 'yes') {
+      return;
+    }
+
+    const put = IDBObjectStore.prototype.put;
+
+    IDBObjectStore.prototype.put = function (...args: Parameters<typeof put>) {
+      if (args[1] === 'profiles') {
+        throw new DOMException('Тест миграции: запись отклонена', 'QuotaExceededError');
+      }
+
+      return put.apply(this, args);
+    };
+  });
+  await page.evaluate(() => localStorage.setItem('fixture-migration-failure', 'yes'));
   await page.getByRole('button', { name: 'Обновить и перезапустить' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-pwa-test-build', 'two');
+  await expect(page.getByRole('alert')).toContainText('Тест миграции: запись отклонена');
   expect(await readApp()).toEqual(before);
+  const schemaBeforeRetry = await page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const request = indexedDB.open('dune-imperium-timer:v1');
+
+      request.onsuccess = () => resolve(request.result);
+    });
+    const version = db.version;
+
+    db.close();
+
+    return version;
+  });
+
+  expect(schemaBeforeRetry).toBe(1);
+  await page.evaluate(() => localStorage.removeItem('fixture-migration-failure'));
+  await page.reload();
+  await expect(page.getByRole('button', { name: '▶ Продолжить', exact: true })).toBeVisible();
+  const migrated = await readApp();
+  const withoutProfiles = (value: unknown): unknown =>
+    JSON.parse(JSON.stringify(value, (key, item) => (key === 'profileId' ? undefined : item)));
+
+  expect(withoutProfiles(migrated)).toEqual(before);
+  expect(migrated.current.players.every((p: any) => typeof p.profileId === 'string')).toBe(true);
   const colors = await page.evaluate(async () => {
     const db = await new Promise<IDBDatabase>((resolve) => {
       const r = indexedDB.open('dune-imperium-timer:v1');
@@ -106,7 +146,7 @@ test('previous release updates without changing current or archived snapshots', 
   });
 
   expect(colors).toEqual(['#c43d35', '#e3b62f', '#47834c', '#315fa8']);
-  expect(before.current.players[0].color).toBe('#a45539');
+  expect(before.current.players[0].color).toBe('#c43d35');
 
   if (browserName === 'webkit') {
     await context.addCookies([
@@ -126,7 +166,7 @@ test('previous release updates without changing current or archived snapshots', 
   const afterOffline = await readApp();
 
   expect(afterOffline.current.id).toBe(before.current.id);
-  expect(afterOffline.archive).toEqual(before.archive);
+  expect(afterOffline.archive).toEqual(migrated.archive);
   expect(
     await page.evaluate(async () => {
       const db = await new Promise<IDBDatabase>((resolve) => {

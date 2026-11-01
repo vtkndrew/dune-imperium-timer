@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
 
+import { fillResults } from '../e2e/helpers';
+
 const base = '/dune-imperium-timer/';
 
 test('offline shell and consented update preserve local storage', async ({
@@ -11,9 +13,14 @@ test('offline shell and consented update preserve local storage', async ({
   await page.getByRole('button', { name: 'Начать партию' }).click();
   await page.getByRole('button', { name: 'Следующий ход →' }).click();
   await page.getByRole('button', { name: 'Завершить партию', exact: true }).click();
-  await page.getByRole('dialog').getByRole('checkbox').first().check();
-  await page.getByRole('button', { name: 'Завершить и сохранить' }).click();
+  await page.getByRole('button', { name: 'Остановить и заполнить итоги' }).click();
+  await fillResults(page);
   await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
+  await page.getByRole('button', { name: 'Новая партия', exact: true }).click();
+  await page.getByRole('button', { name: 'Начать партию' }).click();
+  await page.getByRole('button', { name: 'Завершить партию', exact: true }).click();
+  await page.getByRole('button', { name: 'Остановить и заполнить итоги' }).click();
+  await page.getByLabel('Победные очки', { exact: true }).fill('7');
   await page.getByRole('button', { name: 'Новая партия', exact: true }).click();
   await page.getByRole('button', { name: 'Начать партию' }).click();
   await page.getByRole('button', { name: 'Ⅱ Пауза' }).click();
@@ -27,20 +34,31 @@ test('offline shell and consented update preserve local storage', async ({
         req.onerror = () => reject(req.error);
       });
 
-      return new Promise<{ current: any; archive: any[] }>((resolve) => {
-        const tx = db.transaction(['app', 'archive']);
-        const current = tx.objectStore('app').get('current');
-        const archive = tx.objectStore('archive').getAll();
+      return new Promise<{ current: any; archive: any[]; profiles: any[]; drafts: any[] }>(
+        (resolve) => {
+          const tx = db.transaction(['app', 'archive']);
+          const current = tx.objectStore('app').get('current');
+          const archive = tx.objectStore('archive').getAll();
+          const profiles = tx.objectStore('app').get('profiles');
+          const drafts = tx.objectStore('app').get('drafts');
 
-        tx.oncomplete = () => {
-          db.close();
-          resolve({ current: current.result, archive: archive.result });
-        };
-      });
+          tx.oncomplete = () => {
+            db.close();
+            resolve({
+              current: current.result,
+              archive: archive.result,
+              profiles: profiles.result,
+              drafts: drafts.result,
+            });
+          };
+        },
+      );
     });
   const before = await readApp();
 
   expect(before.archive).toHaveLength(1);
+  expect(before.profiles).toHaveLength(4);
+  expect(before.drafts).toHaveLength(1);
   expect(before.current.paused).toBe(true);
   await page.getByRole('button', { name: 'Приложение', exact: true }).click();
   await expect(page.getByText('Готово к работе без интернета', { exact: true })).toBeVisible({
@@ -108,6 +126,8 @@ test('offline shell and consented update preserve local storage', async ({
 
   expect(afterOffline.current.id).toBe(before.current.id);
   expect(afterOffline.archive).toEqual(before.archive);
+  expect(afterOffline.profiles).toEqual(before.profiles);
+  expect(afterOffline.drafts).toEqual(before.drafts);
   expect(
     await page.evaluate(async () => {
       const db = await new Promise<IDBDatabase>((resolve) => {

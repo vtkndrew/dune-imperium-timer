@@ -2,6 +2,8 @@ import { readFile } from 'node:fs/promises';
 
 import { expect, test, type Page } from '@playwright/test';
 
+import { fillResults, stopGame } from './helpers';
+
 async function start(page: Page) {
   await page.goto('/');
   await page.getByRole('button', { name: 'Начать партию' }).click();
@@ -92,8 +94,8 @@ test('export and import preserve a result; duplicate and replacement do not touc
 }) => {
   await start(page);
   await page.getByRole('button', { name: 'Завершить партию', exact: true }).click();
-  await page.getByRole('dialog').getByRole('checkbox').first().check();
-  await page.getByRole('button', { name: 'Завершить и сохранить' }).click();
+  await page.getByRole('button', { name: 'Остановить и заполнить итоги' }).click();
+  await fillResults(page);
   await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
   const downloading = page.waitForEvent('download');
 
@@ -130,7 +132,20 @@ test('export and import preserve a result; duplicate and replacement do not touc
     await expect(other.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
     let data = await getData(other);
 
-    expect(data.archive[0].game).toEqual(payload.game);
+    expect(data.archive[0].game).toMatchObject({
+      ...payload.game,
+      players: payload.game.players.map(({ profileId: _profileId, ...p }: any) => p),
+    });
+    expect(data.archive[0].game.players.map((p: any) => p.profileId)).toEqual(
+      data.current.players.map((p: any) => p.profileId),
+    );
+
+    for (const source of payload.game.players) {
+      expect(data.profiles.find((p: any) => p.name === source.name).sourceIds).toContain(
+        source.profileId,
+      );
+    }
+
     expect(data.current.id).toBe(currentId);
     await other.getByRole('button', { name: '← Все партии' }).click();
     await upload(payload);
@@ -139,6 +154,16 @@ test('export and import preserve a result; duplicate and replacement do not touc
     ).toBeVisible();
     await other.getByRole('button', { name: 'Закрыть', exact: true }).click();
     payload.game.winnerIds = [payload.game.players[1].id];
+    const [a, b] = payload.game.players.map((p: any) => p.id);
+
+    [payload.game.finals[a].points, payload.game.finals[b].points] = [
+      payload.game.finals[b].points,
+      payload.game.finals[a].points,
+    ];
+    [payload.game.rankings[a], payload.game.rankings[b]] = [
+      payload.game.rankings[b],
+      payload.game.rankings[a],
+    ];
     await upload(payload);
     await other.getByRole('button', { name: 'Отмена', exact: true }).click();
     expect((await getData(other)).archive[0].game.winnerIds).toEqual([payload.game.players[0].id]);
@@ -166,8 +191,10 @@ test('invalid import leaves archive untouched', async ({ page }) => {
   expect((await getData(page)).archive).toHaveLength(0);
 });
 
-test('failed finish never reports success and can be retried', async ({ page }) => {
+test('failed finalization keeps the stopped draft and can be retried', async ({ page }) => {
   await start(page);
+  await stopGame(page);
+  await fillResults(page, 4, false);
   await saved(page);
   await page.evaluate(() => {
     const original = IDBObjectStore.prototype.put;
@@ -184,16 +211,19 @@ test('failed finish never reports success and can be retried', async ({ page }) 
       return original.apply(this, args);
     };
   });
-  await page.getByRole('button', { name: 'Завершить партию', exact: true }).click();
-  await page.getByRole('button', { name: 'Завершить и сохранить' }).click();
-  await expect(page.getByRole('dialog').getByRole('alert')).toContainText('Тест: нет места');
-  const data = await getData(page);
+  await page.getByRole('button', { name: 'Подтвердить места и сохранить' }).click();
+  await expect(page.getByRole('alert')).toContainText('Тест: нет места');
+  let data = await getData(page);
 
   expect(data.archive).toHaveLength(0);
-  expect(data.current).not.toBeNull();
+  expect(data.current).toBeNull();
+  expect(data.drafts).toHaveLength(1);
   await page.evaluate(() => (window as any).restorePut());
-  await page.getByRole('button', { name: 'Завершить и сохранить' }).click();
+  await page.getByRole('button', { name: 'Подтвердить места и сохранить' }).click();
   await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
+  data = await getData(page);
+  expect(data.archive).toHaveLength(1);
+  expect(data.drafts).toHaveLength(0);
 });
 
 test('stale tab cannot overwrite a newer game', async ({ page, context }) => {
@@ -233,7 +263,8 @@ test('mobile, landscape and desktop layouts; screenshots', async ({ page }, test
   await page.screenshot({ path: testInfo.outputPath('live-390.png'), fullPage: true });
   await page.getByRole('button', { name: 'Завершить партию', exact: true }).click();
   await page.screenshot({ path: testInfo.outputPath('finish-390.png'), fullPage: true });
-  await page.getByRole('button', { name: 'Завершить и сохранить' }).click();
+  await page.getByRole('button', { name: 'Остановить и заполнить итоги' }).click();
+  await fillResults(page);
   await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath('archive-390.png'), fullPage: true });
 });

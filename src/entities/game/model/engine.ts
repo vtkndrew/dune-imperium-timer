@@ -51,7 +51,7 @@ export function makePlayer(index: number, minutes = 30): Player {
 }
 
 export function initialData(): AppData {
-  return { settings: defaultSettings(), current: null, archive: [] };
+  return { settings: defaultSettings(), current: null, archive: [], profiles: [], drafts: [] };
 }
 
 function ordered(game: GameCore): Player[] {
@@ -73,6 +73,8 @@ export function startGame(settings: Settings, now: number): Game {
     updatedAt: now,
     endedAt: null,
     players: structuredClone(settings.players),
+    expansions: [...(settings.expansions ?? [])],
+    lastRevealOrder: [],
     first: settings.first,
     active: settings.first,
     round: 1,
@@ -313,6 +315,10 @@ export function transition(current: Game, command: Command, now: number): Game {
 
     if (command.type === 'reveal') {
       game.revealed.push(player.id);
+      game.lastRevealOrder = [
+        ...(game.lastRevealOrder ?? game.revealed).filter((id) => id !== player.id),
+        player.id,
+      ];
 
       if (player.heroId === 'ilesa' && game.turns[player.id] === 1) {
         game.queue.push({

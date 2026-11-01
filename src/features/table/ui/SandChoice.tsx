@@ -31,9 +31,14 @@ export function SandChoice({ choice, onClose }: { choice: Choice; onClose: () =>
           {choice.settled ? `Выбран: ${choice.result}` : ''}
         </div>
         <p className={styles.hint} aria-hidden="true">
-          {choice.settled ? 'Путь определён' : 'Судьба скрыта в песках Арракиса'}
+          {choice.settled ? choice.phrase : 'Судьба скрыта в песках Арракиса'}
         </p>
       </div>
+      {choice.settled && (
+        <button className="primary" onClick={onClose}>
+          Готово
+        </button>
+      )}
     </Dialog>
   );
 }

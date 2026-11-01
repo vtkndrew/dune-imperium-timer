@@ -147,22 +147,22 @@
 .playerForm select {
   margin-top: 5px;
   font-size: 12px;
-  padding: 10px 3px;
+  padding: 10px 28px 10px 6px;
+  background-position: right 8px center;
 }
 .nameColor {
   display: flex;
   gap: 5px;
 }
-.nameColor input:first-child {
+.nameColor button:first-child {
+  flex: 1;
+  min-width: 0;
   font-size: 13px;
-  padding: 9px 7px;
-}
-.nameColor input[type='color'] {
-  padding: 3px;
-  width: 27px;
-  min-width: 27px;
-  border: 0;
-  background: transparent;
+  padding: 9px 6px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .playerMinutes > span {
   display: flex;

@@ -1,0 +1,279 @@
+.eyebrow {
+  display: block;
+  margin-top: 22px;
+  color: var(--accent);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+.hint {
+  color: var(--muted);
+  font-size: 13px;
+}
+.colors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.colors button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.colors button[aria-pressed='true'] {
+  outline: 2px solid var(--accent);
+}
+.swatch {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: #fff;
+  text-shadow: 0 1px 3px #000;
+  font-size: 26px;
+}
+.choices {
+  display: grid;
+  gap: 8px;
+  margin: 16px 0;
+  max-height: 45vh;
+  overflow-y: auto;
+}
+.expansions {
+  margin: 18px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+}
+.expansions label,
+.check {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 44px;
+}
+.expansions input,
+.check input {
+  width: 20px;
+  min-height: 20px;
+  flex: 0 0 20px;
+}
+.expansions small {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.bodyFieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.fieldGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.fieldGrid > label:has(input[type='datetime-local']) {
+  grid-column: 1 / -1;
+}
+.editor label,
+.filters label {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.editor label > input,
+.editor label > select {
+  margin-top: 4px;
+}
+.steps {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 6px 3px 12px;
+  margin: 18px -3px;
+}
+.steps button {
+  flex-shrink: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+.steps [aria-current] {
+  background: var(--accent);
+  color: white;
+}
+.playerEditor {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 16px;
+}
+.playerEditor > label {
+  display: block;
+  margin: 14px 0;
+}
+.playerEditor fieldset {
+  margin: 16px 0;
+  border: 1px solid var(--line);
+  min-width: 0;
+}
+.playerEditor .fieldGrid {
+  margin: 18px 0;
+}
+.rankRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rankRow > div {
+  min-width: 0;
+}
+.rankRow strong {
+  overflow-wrap: anywhere;
+}
+.rankRow small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.rankRow label {
+  flex-shrink: 0;
+  width: 110px;
+}
+.rankRow b {
+  font-size: 26px;
+  color: var(--accent);
+}
+.validation {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 16px 0;
+  font-size: 12px;
+}
+.discard {
+  margin-top: 24px;
+  color: var(--danger);
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 14px;
+  background: #eee4d3;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+.filters > fieldset {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0;
+}
+.summary {
+  text-align: left;
+  padding: 16px;
+  width: 100%;
+}
+.summary header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.summary header strong {
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.rating {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.numbers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.numbers small {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.numbers b {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.numbers span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+}
+.chart {
+  width: 100%;
+  height: auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+}
+.metrics div {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+.metrics dt {
+  color: var(--muted);
+  font-size: 11px;
+}
+.metrics dd {
+  margin: 4px 0 0;
+  font-size: 15px;
+}
+.metrics small {
+  display: block;
+  color: var(--muted);
+}
+.historyItem {
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+.historyItem small {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+}
+@media (max-width: 350px) {
+  .fieldGrid {
+    gap: 10px;
+  }
+  .playerEditor {
+    padding: 10px;
+  }
+  .numbers {
+    gap: 8px;
+  }
+}
+@media (min-width: 700px) {
+  .list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .fieldGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

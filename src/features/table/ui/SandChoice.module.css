@@ -24,7 +24,8 @@
   z-index: 1;
 }
 .ribbon {
-  animation: roll 1500ms cubic-bezier(0.12, 0.55, 0.18, 1) both;
+  will-change: transform;
+  animation: roll 2000ms cubic-bezier(0.16, 0.62, 0.24, 1) both;
 }
 .name {
   height: 72px;
@@ -37,6 +38,7 @@
 }
 .hint {
   margin: 20px 0 0;
+  min-height: 40px;
   font-size: 12px;
   color: var(--muted);
 }

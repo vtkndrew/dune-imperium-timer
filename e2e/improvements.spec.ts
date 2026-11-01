@@ -132,7 +132,7 @@ test('sand choice commits once, cancels cleanly and returns focus', async ({ pag
   await expect(hero).toHaveValue(original);
   await expect(opener).toBeFocused();
   await opener.click();
-  await page.clock.runFor(1500);
+  await page.clock.runFor(2000);
   await expect(hero).not.toHaveValue(original);
   const result = await hero.inputValue();
 
@@ -144,7 +144,7 @@ test('sand choice commits once, cancels cleanly and returns focus', async ({ pag
 
   await expect(page.getByRole('dialog').getByRole('status')).toContainText('Выбран:');
   await page.screenshot({ path: info.outputPath('sand-result.png') });
-  await page.clock.runFor(700);
+  await page.clock.runFor(3000);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(opener).toBeFocused();
   await opener.click();
@@ -186,14 +186,18 @@ test('touch feedback clears; static text and keyboard editing retain their inten
   page,
 }) => {
   await configure(page, 4);
-  const input = page.getByLabel('Имя игрока 1', { exact: true });
+  await page.getByRole('button', { name: 'Имя игрока 1', exact: true }).click();
+  const input = page.getByLabel('Поиск или имя нового игрока');
 
   expect(await input.evaluate((n) => getComputedStyle(n).userSelect)).toBe('text');
-  expect(await page.locator('h2').evaluate((n) => getComputedStyle(n).userSelect)).toBe('none');
-  await input.focus();
-  await page.keyboard.press('ControlOrMeta+A');
-  await page.keyboard.type('Атрейдес');
-  await expect(input).toHaveValue('Атрейдес');
+  expect(
+    await page
+      .locator('h2')
+      .first()
+      .evaluate((n) => getComputedStyle(n).userSelect),
+  ).toBe('none');
+  await input.fill('Атрейдес');
+  await page.getByRole('button', { name: 'Новый игрок: Атрейдес' }).click();
   const random = page.getByRole('button', { name: '⚄ Случайно', exact: true });
 
   await random.focus();
@@ -235,9 +239,11 @@ test('repeated activation has one result and unmount cancels pending callbacks',
     }) as typeof crypto.getRandomValues;
   });
   await hero.click();
+  const calls = await page.evaluate(() => (window as any).randomCalls);
+
   await hero.dispatchEvent('click');
   await expect(page.getByRole('dialog')).toHaveCount(1);
-  expect(await page.evaluate(() => (window as any).randomCalls)).toBe(1);
+  expect(await page.evaluate(() => (window as any).randomCalls)).toBe(calls);
   await page.getByRole('button', { name: 'История 0' }).dispatchEvent('click');
   await page.clock.runFor(3000);
   await page.getByRole('button', { name: 'Новая партия', exact: true }).click();

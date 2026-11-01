@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { randomIndex } from './random';
+import { nextSandPhrase } from './sandPhrases';
 
 export interface SandChoice {
   title: string;
+  phrase: string;
   frames: string[];
   result: string;
   settled: boolean;
@@ -41,6 +43,7 @@ export function useSandChoice() {
       }
 
       const index = randomIndex(names.length);
+      const phrase = nextSandPhrase();
       const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
       const current = { timers: [] as number[] };
 
@@ -48,7 +51,7 @@ export function useSandChoice() {
       const frames = Array.from({ length: 18 }, (_, i) => names[(index + i + 1) % names.length]);
 
       frames.push(names[index]);
-      setChoice({ title, frames, result: names[index], settled: false, reduced });
+      setChoice({ title, phrase, frames, result: names[index], settled: false, reduced });
 
       const settle = () => {
         if (operation.current !== current || document.hidden) {
@@ -56,14 +59,14 @@ export function useSandChoice() {
         }
 
         apply(index);
-        setChoice({ title, frames, result: names[index], settled: true, reduced });
-        current.timers.push(window.setTimeout(cancel, 700));
+        setChoice({ title, phrase, frames, result: names[index], settled: true, reduced });
+        current.timers.push(window.setTimeout(cancel, 3000));
       };
 
       if (reduced) {
         settle();
       } else {
-        current.timers.push(window.setTimeout(settle, 1500));
+        current.timers.push(window.setTimeout(settle, 2000));
       }
     },
     [cancel],

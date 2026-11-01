@@ -223,6 +223,11 @@ describe('версионированный JSON', () => {
     const restored = parseGameFile(exportGame(game));
 
     expect(restored).toEqual(game);
+
+    if (!validGame(restored)) {
+      throw new Error('Expected a measured game');
+    }
+
     expect(statistics(restored)).toEqual(statistics(game));
     expect(sameGame(game, restored)).toBe(true);
   });
@@ -233,7 +238,7 @@ describe('версионированный JSON', () => {
     expect(() => parseGameFile('{')).toThrow();
     const payload = JSON.parse(exportGame(finished()));
 
-    expect(() => parseGameFile(JSON.stringify({ ...payload, formatVersion: 2 }))).toThrow();
+    expect(() => parseGameFile(JSON.stringify({ ...payload, formatVersion: 3 }))).toThrow();
     const winner = structuredClone(payload);
 
     winner.game.winnerIds = ['unknown'];

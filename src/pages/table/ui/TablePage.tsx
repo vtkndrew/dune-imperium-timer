@@ -5,26 +5,37 @@ import {
   formatTime,
   parseGameFile,
   sameGame,
-  statistics,
-  type Game,
+  recordDuration,
+  prepareImport,
+  type ArchivedGame,
 } from '@/entities/game';
 import { PwaPanel } from '@/features/pwa';
-import { GameDetails, History, LiveGame, Setup, useTable } from '@/features/table';
+import {
+  GameDetails,
+  History,
+  LiveGame,
+  Setup,
+  ResultEditor,
+  PlayerStatistics,
+  useTable,
+} from '@/features/table';
 import { Dialog } from '@/shared/ui';
 
 import styles from './TablePage.module.css';
 
-type Modal = 'app' | 'finish' | 'ability' | 'adjust' | 'result' | 'import' | 'reload' | null;
+type Modal =
+  'app' | 'finish' | 'ability' | 'adjust' | 'delete' | 'discard' | 'import' | 'reload' | null;
 
 export function TablePage() {
   const table = useTable();
-  const [tab, setTab] = useState<'play' | 'history'>('play');
+  const [tab, setTab] = useState<'play' | 'history' | 'stats'>('play');
   const [selected, setSelected] = useState<string | null>(null);
   const [modal, setModal] = useState<Modal>(null);
   const [modalError, setModalError] = useState('');
   const [message, setMessage] = useState('');
-  const [preview, setPreview] = useState<Game | null>(null);
-  const [winnerIds, setWinnerIds] = useState<string[]>([]);
+  const [preview, setPreview] = useState<ArchivedGame | null>(null);
+  const [mapping, setMapping] = useState<Record<string, string>>({});
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [adjustPlayer, setAdjustPlayer] = useState('');
   const [adjustMinutes, setAdjustMinutes] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -51,23 +62,97 @@ export function TablePage() {
     setModalError('');
   }, [table.data]);
   const openFinish = useCallback(() => {
-    setWinnerIds([]);
     setModal('finish');
     setModalError('');
   }, []);
   const back = useCallback(() => {
     setSelected(null);
+    setDraftId(null);
   }, []);
   const openImport = useCallback(() => {
     setMessage('');
     fileInput.current?.click();
   }, []);
   const entry = table.data.archive.find((a) => a.game.id === selected);
-  const openResult = useCallback(() => {
-    setWinnerIds(entry?.game.winnerIds ?? []);
-    setModal('result');
+  const draft = table.data.drafts.find((d) => d.id === draftId);
+
+  const run = useCallback(
+    async (task: () => Promise<void>) => {
+      if (busy) {
+        return;
+      }
+
+      setBusy(true);
+      setModalError('');
+      setMessage('');
+
+      try {
+        await task();
+      } catch (e) {
+        const error = e instanceof Error ? e.message : 'Не удалось сохранить.';
+
+        setMessage(error);
+        setModalError(error);
+      } finally {
+        setBusy(false);
+      }
+    },
+    [busy],
+  );
+
+  const openResult = useCallback(
+    () =>
+      void run(async () => {
+        if (entry) {
+          setDraftId(await table.edit(entry.game.id));
+          setSelected(null);
+        }
+      }),
+    [run, entry, table],
+  );
+  const openManual = useCallback(
+    () =>
+      void run(async () => {
+        setDraftId(await table.edit());
+        setSelected(null);
+        setTab('history');
+      }),
+    [run, table],
+  );
+
+  const openDelete = useCallback(() => {
+    setModal('delete');
     setModalError('');
-  }, [entry]);
+  }, []);
+
+  const openDiscard = useCallback(() => {
+    setModal('discard');
+    setModalError('');
+  }, []);
+
+  const complete = useCallback(
+    () =>
+      void run(async () => {
+        if (draft) {
+          setSelected(await table.completeDraft(draft.id));
+          setDraftId(null);
+        }
+      }),
+    [run, draft, table],
+  );
+
+  const selectGame = useCallback((id: string) => {
+    setTab('history');
+    setSelected(id);
+    setDraftId(null);
+  }, []);
+
+  const selectDraft = useCallback((id: string) => {
+    setTab('history');
+    setSelected(null);
+    setDraftId(id);
+  }, []);
+
   const { flush } = table;
   const download = useCallback(async () => {
     if (!entry) {
@@ -91,45 +176,15 @@ export function TablePage() {
     }
   }, [entry, flush]);
 
-  const finish = async () => {
-    const game = table.data.current;
+  const finish = () =>
+    run(async () => {
+      const id = await table.finish();
 
-    if (!game) {
-      return;
-    }
-
-    setBusy(true);
-    setModalError('');
-
-    try {
-      await table.finish(winnerIds.length ? winnerIds : null);
-      setSelected(game.id);
+      setDraftId(id);
+      setSelected(null);
       setTab('history');
       setModal(null);
-    } catch (e) {
-      setModalError(e instanceof Error ? e.message : 'Не удалось сохранить результат.');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const saveResult = async () => {
-    if (!entry) {
-      return;
-    }
-
-    setBusy(true);
-    setModalError('');
-
-    try {
-      await table.result(entry.game.id, winnerIds.length ? winnerIds : null);
-      setModal(null);
-    } catch (e) {
-      setModalError(e instanceof Error ? e.message : 'Не удалось сохранить результат.');
-    } finally {
-      setBusy(false);
-    }
-  };
+    });
 
   const confirmImport = async () => {
     if (!preview) {
@@ -140,8 +195,9 @@ export function TablePage() {
     setModalError('');
 
     try {
-      await table.importGame(preview, true);
+      await table.importGame(preview, true, mapping);
       setSelected(preview.id);
+      setDraftId(null);
       setTab('history');
       setModal(null);
       setMessage('Партия добавлена в историю.');
@@ -171,6 +227,7 @@ export function TablePage() {
         throw new Error('Эта партия сейчас идёт. Её нельзя заменить импортом.');
       }
 
+      setMapping({});
       setPreview(game);
       setModal('import');
     } catch (e) {
@@ -178,23 +235,23 @@ export function TablePage() {
     }
   };
 
-  const modalGame = modal === 'finish' ? table.data.current : entry?.game;
+  const mappedPreview = preview ? prepareImport(table.data, preview, mapping).game : null;
   const existing = table.data.archive.find((a) => a.game.id === preview?.id);
-  const duplicate = Boolean(existing && preview && sameGame(existing.game, preview));
+  const duplicate = Boolean(existing && mappedPreview && sameGame(existing.game, mappedPreview));
   let saveStatus = table.error ? 'Не сохранено' : 'На этом устройстве';
 
   if (table.saving) {
     saveStatus = 'Сохраняем…';
   }
 
-  const resultLabel = modal === 'finish' ? 'Завершить и сохранить' : 'Сохранить результат';
   const importLabel = existing ? 'Заменить эту партию' : 'Добавить в историю';
   const title = {
     app: 'Приложение',
     finish: 'Завершить партию',
     ability: 'Чьё личное действие?',
     adjust: 'Поправка времени',
-    result: 'Результат партии',
+    delete: 'Удалить партию?',
+    discard: 'Удалить черновик?',
     import: 'Импорт партии',
     reload: 'Загрузить сохранённые данные',
   };
@@ -227,11 +284,21 @@ export function TablePage() {
           aria-current={tab === 'history' ? 'page' : undefined}
           onClick={() => {
             setTab('history');
+            setDraftId(null);
             setSelected(null);
             setMessage('');
           }}
         >
           История <span>{table.data.archive.length}</span>
+        </button>
+        <button
+          aria-current={tab === 'stats' ? 'page' : undefined}
+          onClick={() => {
+            setTab('stats');
+            setMessage('');
+          }}
+        >
+          Статистика
         </button>
       </nav>
       {table.error && (
@@ -270,24 +337,47 @@ export function TablePage() {
               />
             ) : (
               <Setup
+                profiles={table.data.profiles}
                 settings={table.data.settings}
                 onChange={table.configure}
                 onStart={table.begin}
                 disabled={table.conflict}
               />
             ))}
-          {tab === 'history' &&
-            (entry ? (
-              <GameDetails
-                game={entry.game}
-                imported={entry.importedAt !== null}
-                onBack={back}
-                onExport={download}
-                onResult={openResult}
-              />
-            ) : (
-              <History entries={table.data.archive} onSelect={setSelected} onImport={openImport} />
-            ))}
+          {tab === 'history' && draft && (
+            <ResultEditor
+              draft={draft}
+              profiles={table.data.profiles}
+              onChange={table.updateDraft}
+              onSave={complete}
+              onBack={back}
+              onDiscard={openDiscard}
+              disabled={busy || table.conflict}
+            />
+          )}
+          {tab === 'history' && !draft && entry && (
+            <GameDetails
+              game={entry.game}
+              imported={entry.importedAt !== null}
+              onBack={back}
+              onExport={download}
+              onResult={openResult}
+              onDelete={openDelete}
+            />
+          )}
+          {tab === 'history' && !draft && !entry && (
+            <History
+              entries={table.data.archive}
+              drafts={table.data.drafts}
+              onSelect={selectGame}
+              onDraft={selectDraft}
+              onImport={openImport}
+              onManual={openManual}
+            />
+          )}
+          {tab === 'stats' && (
+            <PlayerStatistics data={table.data} onSelectGame={selectGame} onRename={table.rename} />
+          )}
         </>
       )}
       <input
@@ -408,45 +498,52 @@ export function TablePage() {
               </button>
             </>
           )}
-          {(modal === 'finish' || modal === 'result') && (
+          {modal === 'finish' && (
             <>
               <p>
-                {modal === 'finish'
-                  ? 'Остановить часы и сохранить партию в историю?'
-                  : 'Результат сохранится в истории и новом экспорте.'}
-              </p>
-              <fieldset className={styles.winners}>
-                <legend>Кто победил? Можно выбрать нескольких.</legend>
-                {modalGame?.players.map((p) => (
-                  <label key={p.id}>
-                    <input
-                      type="checkbox"
-                      checked={winnerIds.includes(p.id)}
-                      onChange={(e) =>
-                        setWinnerIds(
-                          e.target.checked
-                            ? [...winnerIds, p.id]
-                            : winnerIds.filter((id) => id !== p.id),
-                        )
-                      }
-                    />
-                    <span>
-                      {p.name}
-                      <small>{p.heroName}</small>
-                    </span>
-                  </label>
-                ))}
-              </fieldset>
-              <p className={styles.hint}>
-                Если никого не отметить, результат останется неизвестным. Его можно указать позже.
+                Остановить часы и перейти к итогам? Время будет зафиксировано. Черновик можно
+                заполнить позже, даже после следующей партии.
               </p>
               <div className="actions">
                 <button
                   className="primary"
-                  disabled={busy}
-                  onClick={() => void (modal === 'finish' ? finish() : saveResult())}
+                  disabled={busy || table.conflict}
+                  onClick={() => void finish()}
                 >
-                  {busy ? 'Сохраняем…' : resultLabel}
+                  Остановить и заполнить итоги
+                </button>
+                <button disabled={busy} onClick={close}>
+                  Отмена
+                </button>
+              </div>
+            </>
+          )}
+          {(modal === 'delete' || modal === 'discard') && (
+            <>
+              <p>
+                {modal === 'delete'
+                  ? 'Партия и черновик её правок будут удалены. Статистика и последующий Elo пересчитаются.'
+                  : 'Незаполненные итоги будут удалены. Если это правки существующей партии, прежняя запись останется.'}
+              </p>
+              <div className="actions">
+                <button
+                  className="danger"
+                  disabled={busy || table.conflict}
+                  onClick={() =>
+                    void run(async () => {
+                      if (modal === 'delete' && entry) {
+                        await table.remove(entry.game.id);
+                        setSelected(null);
+                      } else if (draft) {
+                        await table.discardDraft(draft.id);
+                        setDraftId(null);
+                      }
+
+                      setModal(null);
+                    })
+                  }
+                >
+                  Удалить
                 </button>
                 <button disabled={busy} onClick={close}>
                   Отмена
@@ -461,8 +558,34 @@ export function TablePage() {
               </p>
               <p>{preview.players.map((p) => p.name).join(' · ')}</p>
               <p>
-                {preview.round} раундов · {formatTime(statistics(preview).total)}
+                {preview.round} раундов ·{' '}
+                {recordDuration(preview) === null
+                  ? 'Длительность не указана'
+                  : formatTime(recordDuration(preview) as number)}
               </p>
+              <fieldset className={styles.preferences}>
+                <legend>Привязка игроков</legend>
+                {preview.players.map((p) => (
+                  <label key={p.id}>
+                    {p.name}
+                    <select
+                      aria-label={`Профиль: ${p.name}`}
+                      value={mapping[p.id] ?? ''}
+                      onChange={(e) => setMapping({ ...mapping, [p.id]: e.target.value })}
+                    >
+                      <option value="">
+                        Автоматически:{' '}
+                        {mappedPreview?.players.find((candidate) => candidate.id === p.id)?.name}
+                      </option>
+                      {table.data.profiles.map((profile) => (
+                        <option key={profile.id} value={profile.id}>
+                          {profile.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </fieldset>
               <p className={styles.hint}>Текущая игра и остальные записи не изменятся.</p>
               {duplicate ? (
                 <>

@@ -40,7 +40,7 @@
 .nav {
   display: flex;
   border-bottom: 1px solid var(--line);
-  gap: 26px;
+  gap: clamp(12px, 4vw, 26px);
 }
 .nav button {
   border: 0;

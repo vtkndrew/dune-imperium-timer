@@ -34,3 +34,14 @@ describe('random choice', () => {
     expect(available.every((h) => players.every((p) => p.heroId !== h.id))).toBe(true);
   });
 });
+
+it('uses all fifty distinct end phrases before repeating', async () => {
+  const { nextSandPhrase, SAND_PHRASES } = await import('./sandPhrases');
+
+  expect(SAND_PHRASES).toHaveLength(50);
+  expect(new Set(SAND_PHRASES).size).toBe(50);
+  const batch = Array.from({ length: 50 }, nextSandPhrase);
+
+  expect(new Set(batch).size).toBe(50);
+  expect(nextSandPhrase()).not.toBe(batch.at(-1));
+});
