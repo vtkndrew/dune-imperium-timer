@@ -1,13 +1,5 @@
 import { makePlayer, statistics } from './engine';
-import type {
-  AppData,
-  ArchivedGame,
-  Expansion,
-  FinalValues,
-  MetricKey,
-  Player,
-  Profile,
-} from './types';
+import type { AppData, ArchivedGame, Expansion, MetricKey, Player, Profile } from './types';
 
 export const EXPANSIONS: { id: Expansion; name: string }[] = [
   { id: 'ix', name: 'Икс' },
@@ -131,96 +123,125 @@ export function manualGame(players: Player[], now = Date.now()): ArchivedGame {
   };
 }
 
-const numeric = (values: FinalValues, key: MetricKey) => Number(values[key] ?? 0);
+const validPoints = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 1000000;
 
-export function compareFinish(game: ArchivedGame, a: string, b: string, reveal = true) {
-  const av = game.finals?.[a] ?? {};
-  const bv = game.finals?.[b] ?? {};
-  const criteria: [string, number, number][] = [
-    ['Победные очки', numeric(av, 'points'), numeric(bv, 'points')],
-    [
-      'Chaumurky',
-      game.expansions?.includes('ix') ? numeric(av, 'chaumurky') : 0,
-      game.expansions?.includes('ix') ? numeric(bv, 'chaumurky') : 0,
-    ],
-    ['Пряность', numeric(av, 'spice'), numeric(bv, 'spice')],
-    ['Солярии', numeric(av, 'solari'), numeric(bv, 'solari')],
-    ['Вода', numeric(av, 'water'), numeric(bv, 'water')],
-    [
-      'Войска в гарнизоне',
-      numeric(av, 'troops') +
-        (game.expansions?.includes('bloodlines') ? numeric(av, 'garrisonCommanders') : 0),
-      numeric(bv, 'troops') +
-        (game.expansions?.includes('bloodlines') ? numeric(bv, 'garrisonCommanders') : 0),
-    ],
-  ];
+export function compareFinish(game: ArchivedGame, a: string, b: string) {
+  const first = game.finals?.[a]?.points;
+  const second = game.finals?.[b]?.points;
 
-  for (const [reason, first, second] of criteria) {
-    if (first !== second) {
-      return { order: second - first, reason };
-    }
+  if (!validPoints(first) || !validPoints(second)) {
+    return { order: 0, reason: 'Укажите ПО всех игроков' };
   }
 
-  const order = game.lastRevealOrder ?? [];
-
-  if (reveal && order.includes(a) && order.includes(b)) {
-    return { order: order.indexOf(b) - order.indexOf(a), reason: 'Более позднее раскрытие' };
-  }
-
-  return { order: 0, reason: 'Нужен порядок раскрытия или подтверждение совместного места' };
+  return {
+    order: second - first,
+    reason: first === second ? 'Равные ПО — подтвердите места' : 'Победные очки',
+  };
 }
 
 export function suggestedRanks(game: ArchivedGame) {
-  const sorted = [...game.players].sort((a, b) => compareFinish(game, a.id, b.id, false).order);
-  const groups: Player[][] = [];
-
-  for (const player of sorted) {
-    const last = groups.at(-1);
-
-    if (last && compareFinish(game, last[0].id, player.id, false).order === 0) {
-      last.push(player);
-    } else {
-      groups.push([player]);
-    }
-  }
-
+  const ready = game.players.every((p) => validPoints(game.finals?.[p.id]?.points));
   const ranks: Record<string, number> = {};
   const unresolved: string[][] = [];
-  let position = 1;
-  const order = game.lastRevealOrder ?? [];
 
-  for (const group of groups) {
-    if (group.length > 1 && !group.every((p) => order.includes(p.id))) {
-      unresolved.push(group.map((p) => p.id));
-    } else {
-      group
-        .sort((a, b) => compareFinish(game, a.id, b.id).order)
-        .forEach((p, i) => {
-          ranks[p.id] = position + i;
-        });
+  if (!ready) {
+    return { ranks, unresolved, sorted: [...game.players], ready };
+  }
+
+  const sorted = [...game.players].sort((a, b) => compareFinish(game, a.id, b.id).order);
+
+  for (let index = 0; index < sorted.length;) {
+    let end = index + 1;
+
+    while (
+      end < sorted.length &&
+      compareFinish(game, sorted[index].id, sorted[end].id).order === 0
+    ) {
+      end += 1;
     }
 
-    position += group.length;
+    if (end - index > 1) {
+      unresolved.push(sorted.slice(index, end).map((p) => p.id));
+    } else {
+      ranks[sorted[index].id] = index + 1;
+    }
+
+    index = end;
   }
 
-  return { ranks, unresolved, sorted: groups.flat() };
+  return { ranks, unresolved, sorted, ready };
 }
 
-export function resultProblems(game: ArchivedGame, includeRanks = true): string[] {
-  const errors: string[] = [];
+// Keep unaffected choices, but never reuse places after their group or positions changed.
+export function changeFinalValue(
+  game: ArchivedGame,
+  playerId: string,
+  key: MetricKey,
+  value: number | boolean | undefined,
+): ArchivedGame {
+  const values = { ...game.finals?.[playerId] };
 
-  if (
-    new Set(game.players.map((p) => p.profileId)).size !== game.players.length ||
-    game.players.some((p) => !p.profileId)
-  ) {
-    errors.push('Выберите разных игроков для всех мест.');
+  if (values[key] === value) {
+    return game;
   }
+
+  if (value === undefined) {
+    delete values[key];
+  } else {
+    values[key] = value;
+  }
+
+  const next = { ...game, finals: { ...game.finals, [playerId]: values } };
+
+  if (key !== 'points') {
+    return next;
+  }
+
+  const before = suggestedRanks(game);
+  const after = suggestedRanks(next);
+  const rankings: Record<string, number> = {};
+
+  if (before.ready && after.ready) {
+    const signature = (
+      record: ArchivedGame,
+      proposal: ReturnType<typeof suggestedRanks>,
+      id: string,
+    ) => {
+      const group = proposal.unresolved.find((g) => g.includes(id)) ?? [id];
+
+      return JSON.stringify([
+        record.finals?.[id]?.points,
+        group,
+        proposal.sorted.findIndex((p) => p.id === group[0]),
+      ]);
+    };
+
+    for (const p of game.players) {
+      if (
+        game.rankings?.[p.id] !== undefined &&
+        signature(game, before, p.id) === signature(next, after, p.id)
+      ) {
+        rankings[p.id] = game.rankings[p.id];
+      }
+    }
+  }
+
+  return { ...next, rankings, sharedPlacesConfirmed: false };
+}
+
+export function additionalResultProblems(game: ArchivedGame): string[] {
+  const errors: string[] = [];
 
   for (const player of game.players) {
     const values = game.finals?.[player.id] ?? {};
 
-    for (const field of applicableMetrics(game)) {
+    for (const field of applicableMetrics(game).filter((field) => field.key !== 'points')) {
       const value = values[field.key];
+
+      if (value === undefined) {
+        continue;
+      }
 
       if (
         field.boolean
@@ -236,12 +257,53 @@ export function resultProblems(game: ArchivedGame, includeRanks = true): string[
       }
     }
 
-    if (values.chaumurky && !numeric(values, 'technologies')) {
+    if (
+      values.chaumurky === true &&
+      typeof values.technologies === 'number' &&
+      values.technologies === 0
+    ) {
       errors.push(`${player.name}: Chaumurky входит в число технологий.`);
     }
 
-    if (numeric(values, 'garrisonCommanders') > numeric(values, 'commanders')) {
+    if (
+      typeof values.garrisonCommanders === 'number' &&
+      typeof values.commanders === 'number' &&
+      values.garrisonCommanders > values.commanders
+    ) {
       errors.push(`${player.name}: в гарнизоне больше командиров, чем приобретено.`);
+    }
+  }
+
+  for (const key of [
+    'emperorAlliance',
+    'guildAlliance',
+    'beneAlliance',
+    'fremenAlliance',
+    'chaumurky',
+  ] as MetricKey[]) {
+    if (game.players.filter((p) => game.finals?.[p.id]?.[key] === true).length > 1) {
+      errors.push(`Несколько владельцев: ${METRICS.find((m) => m.key === key)?.label}.`);
+    }
+  }
+
+  return errors;
+}
+
+export function requiredResultProblems(game: ArchivedGame, includeRanks = true): string[] {
+  const errors: string[] = [];
+
+  if (
+    new Set(game.players.map((p) => p.profileId)).size !== game.players.length ||
+    game.players.some((p) => !p.profileId)
+  ) {
+    errors.push('Выберите разных игроков для всех мест.');
+  }
+
+  for (const player of game.players) {
+    const values = game.finals?.[player.id] ?? {};
+
+    if (!validPoints(values.points)) {
+      errors.push(`${player.name}: укажите победные очки — целое число от 0 до 1000000.`);
     }
 
     if (isManual(game) && game.timing.kind === 'summary') {
@@ -263,18 +325,6 @@ export function resultProblems(game: ArchivedGame, includeRanks = true): string[
           `${player.name}: заполните три категории времени; их сумма должна совпадать с общим расходом.`,
         );
       }
-    }
-  }
-
-  for (const key of [
-    'emperorAlliance',
-    'guildAlliance',
-    'beneAlliance',
-    'fremenAlliance',
-    'chaumurky',
-  ] as MetricKey[]) {
-    if (game.players.filter((p) => game.finals?.[p.id]?.[key] === true).length > 1) {
-      errors.push(`Несколько владельцев: ${METRICS.find((m) => m.key === key)?.label}.`);
     }
   }
 
@@ -313,6 +363,12 @@ export function resultProblems(game: ArchivedGame, includeRanks = true): string[
   return [...new Set(errors)];
 }
 
+export function resultProblems(game: ArchivedGame, includeRanks = true): string[] {
+  return [
+    ...new Set([...requiredResultProblems(game, includeRanks), ...additionalResultProblems(game)]),
+  ];
+}
+
 export function recordTime(game: ArchivedGame, playerId: string): number | null {
   if (!isManual(game)) {
     return statistics(game).players[playerId].total;
@@ -334,7 +390,7 @@ export function eloHistory(entries: AppData['archive'], profiles: Profile[]) {
   );
 
   for (const { game } of ordered) {
-    if (!game.resultsConfirmed || game.rated === false || resultProblems(game).length) {
+    if (!game.resultsConfirmed || game.rated === false || requiredResultProblems(game).length) {
       continue;
     }
 

@@ -211,7 +211,7 @@ test('failed finalization keeps the stopped draft and can be retried', async ({ 
       return original.apply(this, args);
     };
   });
-  await page.getByRole('button', { name: 'Подтвердить места и сохранить' }).click();
+  await page.getByRole('button', { name: 'Подтвердить итоги и сохранить' }).click();
   await expect(page.getByRole('alert')).toContainText('Тест: нет места');
   let data = await getData(page);
 
@@ -219,7 +219,7 @@ test('failed finalization keeps the stopped draft and can be retried', async ({ 
   expect(data.current).toBeNull();
   expect(data.drafts).toHaveLength(1);
   await page.evaluate(() => (window as any).restorePut());
-  await page.getByRole('button', { name: 'Подтвердить места и сохранить' }).click();
+  await page.getByRole('button', { name: 'Подтвердить итоги и сохранить' }).click();
   await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
   data = await getData(page);
   expect(data.archive).toHaveLength(1);

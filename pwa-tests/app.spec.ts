@@ -20,7 +20,7 @@ test('offline shell and consented update preserve local storage', async ({
   await page.getByRole('button', { name: 'Начать партию' }).click();
   await page.getByRole('button', { name: 'Завершить партию', exact: true }).click();
   await page.getByRole('button', { name: 'Остановить и заполнить итоги' }).click();
-  await page.getByLabel('Победные очки', { exact: true }).fill('7');
+  await page.getByLabel('Победные очки', { exact: true }).first().fill('7');
   await page.getByRole('button', { name: 'Новая партия', exact: true }).click();
   await page.getByRole('button', { name: 'Начать партию' }).click();
   await page.getByRole('button', { name: 'Ⅱ Пауза' }).click();

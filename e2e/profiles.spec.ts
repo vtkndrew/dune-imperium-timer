@@ -59,7 +59,7 @@ test('stopped drafts survive reload and coexist with a new game; editing, renami
   await namePlayer(page, 2, 'Борис');
   await page.getByRole('button', { name: 'Начать партию' }).click();
   await stopGame(page);
-  await page.getByLabel('Победные очки', { exact: true }).fill('10');
+  await page.getByLabel('Победные очки', { exact: true }).first().fill('10');
   const stopped = await data(page);
 
   expect(stopped.current).toBeNull();
@@ -71,7 +71,7 @@ test('stopped drafts survive reload and coexist with a new game; editing, renami
 
   await page.getByRole('button', { name: 'История 0' }).click();
   await page.getByRole('button').filter({ hasText: 'Продолжить заполнение' }).click();
-  await expect(page.getByLabel('Победные очки', { exact: true })).toHaveValue('10');
+  await expect(page.getByLabel('Победные очки', { exact: true }).first()).toHaveValue('10');
   await fillResults(page, 2);
   let saved = await data(page);
   const archived = saved.archive[0].game;
@@ -94,10 +94,9 @@ test('stopped drafts survive reload and coexist with a new game; editing, renami
   await page.getByRole('button', { name: 'История 1' }).click();
   await page.getByRole('button').filter({ hasText: 'АЛЕКСАНДР · Борис' }).click();
   await page.getByRole('button', { name: 'Изменить итоги' }).click();
-  await page.getByLabel('Победные очки', { exact: true }).fill('3');
+  await page.getByLabel('Победные очки', { exact: true }).first().fill('3');
   expect((await data(page)).archive[0].game.finals[archived.players[0].id].points).toBe(10);
-  await page.getByRole('button', { name: 'Места и сохранение', exact: true }).click();
-  await page.getByRole('button', { name: 'Подтвердить места и сохранить' }).click();
+  await page.getByRole('button', { name: 'Подтвердить итоги и сохранить' }).click();
   saved = await data(page);
   expect(saved.archive[0].game.intervals).toEqual(archived.intervals);
   expect(saved.archive[0].game.winnerIds).toEqual([archived.players[1].id]);
@@ -140,17 +139,15 @@ test('manual games without a timer round trip v2 and leave measured averages unk
 
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
-    await page.getByLabel('Победные очки', { exact: true }).scrollIntoViewIfNeeded();
+    await page.getByLabel('Победные очки', { exact: true }).first().scrollIntoViewIfNeeded();
     await page.screenshot({ path: info.outputPath(`final-fields-${width}.png`) });
   }
 
-  for (const field of await page.locator('select').all()) {
+  for (const field of await page.locator('select:visible').all()) {
     expect((await field.boundingBox())?.height).toBeGreaterThanOrEqual(44);
   }
 
-  await page.getByRole('button', { name: 'Места и сохранение', exact: true }).click();
-  await expect(page.getByRole('button', { name: 'Подтвердить места и сохранить' })).toBeDisabled();
-  await page.getByRole('button', { name: '1. Игрок 1', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Подтвердить итоги и сохранить' })).toBeDisabled();
   await fillResults(page, 2);
   const saved = await data(page);
   const game = saved.archive[0].game;
@@ -205,12 +202,16 @@ test('manual summary timing and expansion fields are preserved; draft deletion k
   await page.getByRole('button', { name: 'История 0' }).click();
   await page.getByRole('button', { name: '＋ Добавить партию вручную' }).click();
   await page.getByLabel('Без таймера').uncheck();
+  await page.getByText('Настройки партии — дополнения', { exact: true }).click();
   await page.getByLabel('Икс', { exact: true }).check();
   await page.getByLabel('Бессмертие', { exact: true }).check();
   await page.getByLabel('Кровные узы', { exact: true }).check();
 
   for (let i = 0; i < 2; i += 1) {
-    await page.getByLabel('Общий расход, мин', { exact: true }).fill(String(i + 1));
+    const card = page.locator('[data-player-id]').nth(i);
+
+    await card.getByText('Дополнительная статистика', { exact: true }).click();
+    await card.getByLabel('Общий расход, мин', { exact: true }).fill(String(i + 1));
 
     for (const label of [
       'Приобретённые дредноуты',
@@ -221,21 +222,19 @@ test('manual summary timing and expansion fields are preserved; draft deletion k
       'Приобретённые командиры',
       'Командиры в гарнизоне',
     ]) {
-      await page.getByLabel(label, { exact: true }).fill('0');
+      await card.getByLabel(label, { exact: true }).fill('0');
     }
 
-    await page.getByLabel('Технология Chaumurky', { exact: true }).selectOption('false');
-    await page.getByRole('button', { name: 'Далее →', exact: true }).click();
+    await card.getByLabel('Технология Chaumurky', { exact: true }).selectOption('false');
   }
 
-  await page.getByRole('button', { name: '1. Игрок 1', exact: true }).click();
   await fillResults(page, 2);
   const original = (await data(page)).archive[0].game;
 
   expect(original.timing.players[original.players[1].id].total).toBe(120000);
   expect(original.expansions).toHaveLength(3);
   await page.getByRole('button', { name: 'Изменить итоги' }).click();
-  await page.getByLabel('Победные очки', { exact: true }).fill('1');
+  await page.getByLabel('Победные очки', { exact: true }).first().fill('1');
   await page.getByRole('button', { name: 'Удалить черновик', exact: true }).click();
   await page.getByRole('button', { name: 'Удалить', exact: true }).click();
   expect((await data(page)).archive[0].game).toEqual(original);
@@ -269,7 +268,7 @@ test('failed stop freezes the exact end time in memory and retry saves the same 
   await expect(page.getByRole('heading', { name: 'Часы остановлены.' })).toBeVisible();
   await expect(page.getByRole('alert')).toContainText('Тест: остановка без места');
   expect((await data(page)).current.id).toBe(before.current.id);
-  await page.getByLabel('Победные очки', { exact: true }).fill('10');
+  await page.getByLabel('Победные очки', { exact: true }).first().fill('10');
   await page.evaluate(() => (window as any).restorePut());
   await page.getByRole('button', { name: 'Повторить', exact: true }).click();
   const saved = await data(page);
@@ -281,7 +280,7 @@ test('failed stop freezes the exact end time in memory and retry saves the same 
   await page.reload();
   await page.getByRole('button', { name: 'История 0' }).click();
   await page.getByRole('button').filter({ hasText: 'Продолжить заполнение' }).click();
-  await expect(page.getByLabel('Победные очки', { exact: true })).toHaveValue('10');
+  await expect(page.getByLabel('Победные очки', { exact: true }).first()).toHaveValue('10');
 });
 
 test('sand animation renders a readable result with real motion on mobile', async ({

@@ -275,7 +275,7 @@ function metricText(value: number | boolean | undefined) {
 
 function ratingCaption(game: ArchivedGame) {
   if (!game.resultsConfirmed) {
-    return 'Итоги неполные. Дополните показатели и подтвердите места, чтобы учитывать партию в Elo.';
+    return 'Итоги неполные. Укажите ПО всех участников и подтвердите места, чтобы учитывать партию в Elo.';
   }
 
   return game.rated === false ? 'Не учитывается в рейтинге.' : 'Учитывается в общем Elo.';

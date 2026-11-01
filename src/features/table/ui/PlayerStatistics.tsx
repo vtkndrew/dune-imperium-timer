@@ -243,7 +243,7 @@ export function PlayerStatistics({
                 </details>
               </>
             ) : (
-              <p>Пока нет партий с полными подтверждёнными местами для Elo.</p>
+              <p>Пока нет партий с подтверждёнными ПО и местами для Elo.</p>
             )}
             <h3>Герои</h3>
             <div className={styles.list}>

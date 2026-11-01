@@ -5,6 +5,9 @@ import {
   HEROES,
   applicableMetrics,
   compareFinish,
+  changeFinalValue,
+  recordTime,
+  formatTime,
   heroFor,
   isManual,
   makePlayer,
@@ -17,16 +20,7 @@ import {
   type Profile,
   type ResultDraft,
 } from '@/entities/game';
-import {
-  TrophyIcon,
-  Stack,
-  Button,
-  Field,
-  Input,
-  Select,
-  Checkbox,
-  ActionGroup,
-} from '@/shared/ui';
+import { TrophyIcon, Stack, Button, Field, Input, Select, Checkbox } from '@/shared/ui';
 
 import { ExpansionPicker, ProfilePicker } from './Choices';
 import styles from './Records.module.css';
@@ -51,12 +45,9 @@ export function ResultEditor({
   onDiscard: () => void;
   disabled: boolean;
 }) {
-  const [step, setStep] = useState(0);
   const [choose, setChoose] = useState<number | null>(null);
   const game = draft.game;
   const manual = isManual(game);
-  const activeStep = Math.min(step, game.players.length);
-  const player = game.players[activeStep];
   const proposal = suggestedRanks(game);
   const effectiveRanks = { ...proposal.ranks, ...game.rankings };
   const problems = resultProblems({ ...game, rankings: effectiveRanks });
@@ -95,30 +86,13 @@ export function ResultEditor({
         ]),
       );
 
-      patch({ ...game, expansions, finals, rankings: {}, sharedPlacesConfirmed: false });
+      patch({ ...game, expansions, finals });
     },
     [game, patch],
   );
 
-  const changeMetric = (key: MetricKey, value: number | boolean | undefined) => {
-    if (!player) {
-      return;
-    }
-
-    const values = { ...game.finals?.[player.id] };
-
-    if (value === undefined) {
-      delete values[key];
-    } else {
-      values[key] = value;
-    }
-
-    patch({
-      ...game,
-      finals: { ...game.finals, [player.id]: values },
-      rankings: {},
-      sharedPlacesConfirmed: false,
-    });
+  const changeMetric = (playerId: string, key: MetricKey, value: number | boolean | undefined) => {
+    patch(changeFinalValue(game, playerId, key, value));
   };
 
   const changeCount = (count: number) => {
@@ -141,6 +115,7 @@ export function ResultEditor({
       ),
       finals: Object.fromEntries(Object.entries(game.finals ?? {}).filter(([id]) => ids.has(id))),
       rankings: {},
+      sharedPlacesConfirmed: false,
       timing: {
         ...game.timing,
         players: Object.fromEntries(
@@ -150,8 +125,12 @@ export function ResultEditor({
     });
   };
 
-  const changeTime = (key: 'total' | 'turns' | 'combat' | 'hero', raw: string) => {
-    if (!isManual(game) || !player) {
+  const changeTime = (
+    playerId: string,
+    key: 'total' | 'turns' | 'combat' | 'hero',
+    raw: string,
+  ) => {
+    if (!isManual(game)) {
       return;
     }
 
@@ -161,7 +140,7 @@ export function ResultEditor({
       return;
     }
 
-    const time = { ...(game.timing.players[player.id] ?? { total: null }) };
+    const time = { ...(game.timing.players[playerId] ?? { total: null }) };
 
     if (key === 'total') {
       time.total = value ?? null;
@@ -173,7 +152,7 @@ export function ResultEditor({
 
     patch({
       ...game,
-      timing: { ...game.timing, players: { ...game.timing.players, [player.id]: time } },
+      timing: { ...game.timing, players: { ...game.timing.players, [playerId]: time } },
     });
   };
 
@@ -185,8 +164,9 @@ export function ResultEditor({
       </span>
       <h2>{manual ? 'Добавить партию' : 'Часы остановлены.'}</h2>
       <p className={styles.hint}>
-        Заполните состояние после эффектов конца игры. Можно вернуться позже или начать новую
-        партию. {draft.editingId && 'Прежние результаты действуют до подтверждения правок.'}
+        Укажите ПО после эффектов конца игры и подтвердите места. Остальная статистика
+        необязательна. Можно вернуться позже или начать новую партию.{' '}
+        {draft.editingId && 'Прежние результаты действуют до подтверждения правок.'}
       </p>
       <Stack as="fieldset" disabled={disabled} className={styles.bodyFieldset}>
         {manual && (
@@ -274,168 +254,193 @@ export function ResultEditor({
             </Field>
           </div>
         )}
-        <ExpansionPicker value={game.expansions ?? []} onChange={changeExpansions} />
-        <nav className={styles.steps} aria-label="Заполнение итогов">
-          {game.players.map((p, i) => (
-            <Button
-              key={p.id}
-              aria-current={activeStep === i ? 'step' : undefined}
-              onClick={() => setStep(i)}
+        <details>
+          <summary>Настройки партии — дополнения</summary>
+          <ExpansionPicker value={game.expansions ?? []} onChange={changeExpansions} />
+        </details>
+        <div className={styles.resultPlayers}>
+          {game.players.map((player, index) => (
+            <Stack
+              as="article"
+              key={player.id}
+              data-player-id={player.id}
+              aria-label={`Итоги: ${player.name}`}
+              className={styles.playerEditor}
             >
-              {i + 1}. {p.name}
-            </Button>
-          ))}
-          <Button
-            aria-current={!player ? 'step' : undefined}
-            onClick={() => setStep(game.players.length)}
-          >
-            Места и сохранение
-          </Button>
-        </nav>
-        {player ? (
-          <Stack as="article" className={styles.playerEditor}>
-            <h3>{player.name}</h3>
-            <Button
-              onClick={(e) => {
-                e.currentTarget.focus();
-                setChoose(activeStep);
-              }}
-            >
-              Выбрать профиль: {player.name}
-            </Button>
-            <Field>
-              Герой
-              <Select
-                aria-label={`Герой ${player.name}`}
-                value={player.heroId}
-                onChange={(e) => {
-                  const hero = heroFor(e.target.value);
+              <h3>{player.name}</h3>
+              <p className={styles.hint}>{player.heroName}</p>
+              {!manual && (
+                <p className={styles.hint}>
+                  Измеренное личное время: {formatTime(recordTime(game, player.id) ?? 0)}
+                </p>
+              )}
+              <Field>
+                Победные очки
+                <Input
+                  type="number"
+                  min={0}
+                  max={1000000}
+                  step={1}
+                  required
+                  inputMode="numeric"
+                  value={String(game.finals?.[player.id]?.points ?? '')}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    const value = Number(raw);
 
-                  patchPlayer(activeStep, { heroId: hero.id, heroName: hero.name });
-                }}
-              >
-                {HEROES.map((hero) => (
-                  <option key={hero.id} value={hero.id}>
-                    {hero.name}
-                  </option>
-                ))}
-              </Select>
-            </Field>
-            <div className={styles.fieldGrid}>
-              {applicableMetrics(game).map((field) => (
-                <Field key={field.key}>
-                  {field.label}
-                  {field.boolean ? (
+                    if (
+                      raw === '' ||
+                      (Number.isSafeInteger(value) && value >= 0 && value <= 1000000)
+                    ) {
+                      changeMetric(player.id, 'points', raw === '' ? undefined : value);
+                    }
+                  }}
+                />
+              </Field>
+              <details>
+                <summary>Изменить участника и героя</summary>
+                <Stack>
+                  <Button
+                    onClick={(e) => {
+                      e.currentTarget.focus();
+                      setChoose(index);
+                    }}
+                  >
+                    Выбрать профиль: {player.name}
+                  </Button>
+                  <Field>
+                    Герой
                     <Select
-                      aria-label={field.label}
-                      value={
-                        game.finals?.[player.id]?.[field.key] === undefined
-                          ? ''
-                          : String(game.finals?.[player.id]?.[field.key])
-                      }
-                      onChange={(e) =>
-                        changeMetric(
-                          field.key,
-                          e.target.value === '' ? undefined : e.target.value === 'true',
-                        )
-                      }
+                      aria-label={`Герой ${player.name}`}
+                      value={player.heroId}
+                      onChange={(e) => {
+                        const hero = heroFor(e.target.value);
+
+                        patchPlayer(index, { heroId: hero.id, heroName: hero.name });
+                      }}
                     >
-                      <option value="">Выберите</option>
-                      <option value="true">Да</option>
-                      <option value="false">Нет</option>
+                      {HEROES.map((hero) => (
+                        <option key={hero.id} value={hero.id}>
+                          {hero.name}
+                        </option>
+                      ))}
                     </Select>
-                  ) : (
+                  </Field>
+                </Stack>
+              </details>
+              <details>
+                <summary>Дополнительная статистика</summary>
+                <p className={styles.hint}>
+                  Заполняйте только известные значения. Пустое поле не означает ноль или «Нет».
+                </p>
+                <div className={styles.fieldGrid}>
+                  {applicableMetrics(game)
+                    .filter((field) => field.key !== 'points')
+                    .map((field) => (
+                      <Field key={field.key}>
+                        {field.label}
+                        {field.boolean ? (
+                          <Select
+                            aria-label={field.label}
+                            value={
+                              game.finals?.[player.id]?.[field.key] === undefined
+                                ? ''
+                                : String(game.finals?.[player.id]?.[field.key])
+                            }
+                            onChange={(e) =>
+                              changeMetric(
+                                player.id,
+                                field.key,
+                                e.target.value === '' ? undefined : e.target.value === 'true',
+                              )
+                            }
+                          >
+                            <option value="">Не указано</option>
+                            <option value="true">Да</option>
+                            <option value="false">Нет</option>
+                          </Select>
+                        ) : (
+                          <Input
+                            type="number"
+                            min={0}
+                            max={field.max ?? 1000000}
+                            step={1}
+                            value={String(game.finals?.[player.id]?.[field.key] ?? '')}
+                            onChange={(e) => {
+                              const value = Number(e.target.value);
+
+                              if (e.target.value === '') {
+                                changeMetric(player.id, field.key, undefined);
+                              } else if (
+                                Number.isInteger(value) &&
+                                value >= 0 &&
+                                value <= (field.max ?? 1000000)
+                              ) {
+                                changeMetric(player.id, field.key, value);
+                              }
+                            }}
+                          />
+                        )}
+                      </Field>
+                    ))}
+                </div>
+              </details>
+              {isManual(game) && game.timing.kind === 'summary' && (
+                <Stack as="fieldset">
+                  <legend>Личное время</legend>
+                  <Field>
+                    Общий расход, мин
                     <Input
                       type="number"
                       min={0}
-                      max={field.max ?? 1000000}
-                      step={1}
-                      value={String(game.finals?.[player.id]?.[field.key] ?? '')}
-                      onChange={(e) => {
-                        const value = Number(e.target.value);
-
-                        if (e.target.value === '') {
-                          changeMetric(field.key, undefined);
-                        } else if (
-                          Number.isInteger(value) &&
-                          value >= 0 &&
-                          value <= (field.max ?? 1000000)
-                        ) {
-                          changeMetric(field.key, value);
-                        }
-                      }}
+                      step="any"
+                      value={
+                        game.timing.players[player.id]?.total == null
+                          ? ''
+                          : Number(game.timing.players[player.id].total) / 60000
+                      }
+                      onChange={(e) => changeTime(player.id, 'total', e.target.value)}
                     />
-                  )}
-                </Field>
-              ))}
-            </div>
-            {isManual(game) && game.timing.kind === 'summary' && (
-              <Stack as="fieldset">
-                <legend>Личное время</legend>
-                <Field>
-                  Общий расход, мин
-                  <Input
-                    type="number"
-                    min={0}
-                    step="any"
-                    value={
-                      game.timing.players[player.id]?.total == null
-                        ? ''
-                        : Number(game.timing.players[player.id].total) / 60000
-                    }
-                    onChange={(e) => changeTime('total', e.target.value)}
-                  />
-                </Field>
-                <details>
-                  <summary>Разбивка времени — необязательно</summary>
-                  <p>
-                    Если заполняете, укажите все три категории. Их сумма должна совпадать с общим
-                    расходом.
-                  </p>
-                  <Stack>
-                    {(['turns', 'combat', 'hero'] as const).map((key, i) => (
-                      <Field key={key}>
-                        {['Ходы и раскрытие, мин', 'Сражения, мин', 'Действия героя, мин'][i]}
-                        <Input
-                          type="number"
-                          step="any"
-                          min={0}
-                          value={
-                            game.timing.players[player.id]?.[key] === undefined
-                              ? ''
-                              : Number(game.timing.players[player.id][key]) / 60000
-                          }
-                          onChange={(e) => changeTime(key, e.target.value)}
-                        />
-                      </Field>
-                    ))}
-                  </Stack>
-                </details>
-              </Stack>
-            )}
-            <ActionGroup>
-              <Button disabled={activeStep === 0} onClick={() => setStep(activeStep - 1)}>
-                ← Назад
-              </Button>
-              <Button
-                variant="primary"
-                onClick={() => {
-                  setStep(activeStep + 1);
-                  window.scrollTo({ top: 0, behavior: 'instant' });
-                }}
-              >
-                Далее →
-              </Button>
-            </ActionGroup>
-          </Stack>
-        ) : (
-          <Stack className={styles.review}>
-            <h3>Итоговые места</h3>
-            <p>
-              Сначала ПО, затем Chaumurky, пряность, солярии, вода, гарнизон и более позднее
-              раскрытие. Подтвердите результат после проверки.
-            </p>
-            {proposal.sorted.map((p, i) => {
+                  </Field>
+                  <details>
+                    <summary>Разбивка времени — необязательно</summary>
+                    <p>
+                      Если заполняете, укажите все три категории. Их сумма должна совпадать с общим
+                      расходом.
+                    </p>
+                    <Stack>
+                      {(['turns', 'combat', 'hero'] as const).map((key, i) => (
+                        <Field key={key}>
+                          {['Ходы и раскрытие, мин', 'Сражения, мин', 'Действия героя, мин'][i]}
+                          <Input
+                            type="number"
+                            step="any"
+                            min={0}
+                            value={
+                              game.timing.players[player.id]?.[key] === undefined
+                                ? ''
+                                : Number(game.timing.players[player.id][key]) / 60000
+                            }
+                            onChange={(e) => changeTime(player.id, key, e.target.value)}
+                          />
+                        </Field>
+                      ))}
+                    </Stack>
+                  </details>
+                </Stack>
+              )}
+            </Stack>
+          ))}
+        </div>
+        <Stack className={styles.review}>
+          <h3>Итоговые места</h3>
+          <p>
+            Места предложены по убыванию ПО. При равных очках укажите фактический порядок.
+            Дополнительная статистика не влияет на места.
+          </p>
+          {!proposal.ready && <p>Введите ПО всех игроков, чтобы определить места.</p>}
+          {proposal.ready &&
+            proposal.sorted.map((p, i) => {
               const group = proposal.unresolved.find((g) => g.includes(p.id));
               const first = group
                 ? proposal.sorted.findIndex((candidate) => group.includes(candidate.id)) + 1
@@ -466,7 +471,7 @@ export function ResultEditor({
                             delete rankings[p.id];
                           }
 
-                          patch({ ...game, rankings });
+                          patch({ ...game, rankings, sharedPlacesConfirmed: false });
                         }}
                       >
                         <option value="">Уточните</option>
@@ -485,43 +490,39 @@ export function ResultEditor({
                 </div>
               );
             })}
-            {proposal.unresolved.length > 0 && (
-              <>
-                <p>
-                  Для равных по известным критериям участников укажите порядок по более позднему
-                  раскрытию.
-                </p>
-                <Field inline className={styles.check}>
-                  <Checkbox
-                    checked={game.sharedPlacesConfirmed ?? false}
-                    onChange={(e) => patch({ ...game, sharedPlacesConfirmed: e.target.checked })}
-                  />
-                  Подтверждаю совместное место, если оно указано
-                </Field>
-              </>
-            )}
-            <Field inline className={styles.check}>
-              <Checkbox
-                checked={game.rated === false}
-                onChange={(e) => patch({ ...game, rated: !e.target.checked })}
-              />
-              Не учитывать в рейтинге
-            </Field>
-            {problems.length > 0 && (
-              <div role="status" className={styles.validation}>
-                <strong>Осталось заполнить или исправить: {problems.length}</strong>
-                <ul>
-                  {problems.slice(0, 8).map((problem) => (
-                    <li key={problem}>{problem}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            <Button variant="primary" disabled={disabled || problems.length > 0} onClick={onSave}>
-              Подтвердить места и сохранить
-            </Button>
-          </Stack>
-        )}
+          {proposal.unresolved.length > 0 && (
+            <>
+              <p>Совместное место допустимо только после явного подтверждения ниже.</p>
+              <Field inline className={styles.check}>
+                <Checkbox
+                  checked={game.sharedPlacesConfirmed ?? false}
+                  onChange={(e) => patch({ ...game, sharedPlacesConfirmed: e.target.checked })}
+                />
+                Подтверждаю совместное место, если оно указано
+              </Field>
+            </>
+          )}
+          <Field inline className={styles.check}>
+            <Checkbox
+              checked={game.rated === false}
+              onChange={(e) => patch({ ...game, rated: !e.target.checked })}
+            />
+            Не учитывать в рейтинге
+          </Field>
+          {problems.length > 0 && (
+            <div role="status" className={styles.validation}>
+              <strong>Осталось заполнить или исправить: {problems.length}</strong>
+              <ul>
+                {problems.slice(0, 8).map((problem) => (
+                  <li key={problem}>{problem}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <Button variant="primary" disabled={disabled || problems.length > 0} onClick={onSave}>
+            Подтвердить итоги и сохранить
+          </Button>
+        </Stack>
       </Stack>
       <Button className={styles.discard} onClick={onDiscard} disabled={disabled}>
         Удалить черновик
