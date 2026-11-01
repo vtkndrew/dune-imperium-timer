@@ -2,6 +2,9 @@ import {
   createContext,
   useContext,
   useId,
+  useState,
+  type Dispatch,
+  type SetStateAction,
   type ComponentPropsWithRef,
   type ReactNode,
 } from 'react';
@@ -26,7 +29,11 @@ export function Button({
   );
 }
 
-const FieldContext = createContext<{ describedBy?: string; invalid?: boolean }>({});
+const FieldContext = createContext<{
+  describedBy?: string;
+  invalid?: boolean;
+  setInputError?: Dispatch<SetStateAction<string>>;
+}>({});
 
 export function Field({
   children,
@@ -43,11 +50,14 @@ export function Field({
   inline?: boolean;
 }) {
   const id = useId();
+  const [inputError, setInputError] = useState('');
+  const shownError = error || inputError;
   const describedBy =
-    [hint ? `${id}-hint` : '', error ? `${id}-error` : ''].filter(Boolean).join(' ') || undefined;
+    [hint ? `${id}-hint` : '', shownError ? `${id}-error` : ''].filter(Boolean).join(' ') ||
+    undefined;
 
   return (
-    <FieldContext.Provider value={{ describedBy, invalid: Boolean(error) }}>
+    <FieldContext.Provider value={{ describedBy, invalid: Boolean(shownError), setInputError }}>
       <label {...props} className={classes(styles.field, inline && styles.inline, className)}>
         {label && <span>{label}</span>}
         {children}
@@ -56,9 +66,9 @@ export function Field({
             {hint}
           </small>
         )}
-        {error && (
+        {shownError && (
           <small id={`${id}-error`} role="alert">
-            {error}
+            {shownError}
           </small>
         )}
       </label>
@@ -104,4 +114,8 @@ export function Select({
 
 export function Checkbox({ className, ...props }: Omit<ComponentPropsWithRef<'input'>, 'type'>) {
   return <Input {...props} type="checkbox" className={classes(styles.checkbox, className)} />;
+}
+
+export function useFieldError() {
+  return useContext(FieldContext).setInputError;
 }

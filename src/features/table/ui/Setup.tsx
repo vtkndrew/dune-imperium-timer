@@ -11,7 +11,15 @@ import {
   type Settings,
   type Profile,
 } from '@/entities/game';
-import { SandwormIcon, Stack, Button, Field, Input, Select } from '@/shared/ui';
+import {
+  SandwormIcon,
+  Stack,
+  Button,
+  Field,
+  NumberInput,
+  useNumberInputValidation,
+  Select,
+} from '@/shared/ui';
 
 import { ColorPicker, ProfilePicker, ExpansionPicker } from './Choices';
 import { SandChoice } from './SandChoice';
@@ -34,6 +42,9 @@ export function Setup({
 }) {
   const [draft, setDraft] = useState(settings);
   const random = useSandChoice();
+  const numbers = useNumberInputValidation();
+  const [timeReset, setTimeReset] = useState(0);
+  const [presetReset, setPresetReset] = useState(0);
   const [picker, setPicker] = useState<{ index: number; kind: 'profile' | 'color' } | null>(null);
   const unique = new Set(draft.players.map((p) => nameKey(p.name))).size === draft.players.length;
   const conflicts = colorConflicts(draft.players);
@@ -75,12 +86,19 @@ export function Setup({
     change({ ...draft, players: colored, first: Math.min(draft.first, amount - 1) });
   };
 
-  const minutes = (value: number) =>
+  const minutes = (value: number, preset = false) => {
+    setTimeReset((n) => n + 1);
+
+    if (preset) {
+      setPresetReset((n) => n + 1);
+    }
+
     change({
       ...draft,
       minutes: value,
       players: draft.players.map((p) => ({ ...p, initialMs: value * 60_000 })),
     });
+  };
 
   const selectColor = useCallback(
     (color: string) => {
@@ -141,13 +159,19 @@ export function Setup({
         <Field inline className={styles.timeSetting}>
           Каждому на всю партию{' '}
           <span>
-            <Input
+            <NumberInput
               aria-label="Минут каждому"
-              type="number"
-              min="1"
-              max="1440"
-              value={draft.minutes || ''}
-              onChange={(e) => minutes(Number(e.target.value))}
+              min={1}
+              max={1440}
+              required
+              resetKey={presetReset}
+              value={draft.minutes}
+              onValidityChange={numbers.onValidityChange}
+              onValueChange={(value) => {
+                if (value !== undefined) {
+                  minutes(value);
+                }
+              }}
             />
             <span>мин</span>
           </span>
@@ -157,7 +181,7 @@ export function Setup({
             <Button
               key={value}
               aria-pressed={draft.minutes === value}
-              onClick={() => minutes(value)}
+              onClick={() => minutes(value, true)}
             >
               {value} мин
             </Button>
@@ -258,13 +282,19 @@ export function Setup({
             <Field className={styles.playerMinutes}>
               Личное время{' '}
               <span>
-                <Input
+                <NumberInput
                   aria-label={`Минут игроку ${i + 1}`}
-                  type="number"
-                  min="1"
-                  max="1440"
-                  value={player.initialMs / 60_000 || ''}
-                  onChange={(e) => playerChange(i, { initialMs: Number(e.target.value) * 60_000 })}
+                  min={1}
+                  max={1440}
+                  required
+                  resetKey={timeReset}
+                  value={player.initialMs / 60_000}
+                  onValidityChange={numbers.onValidityChange}
+                  onValueChange={(value) => {
+                    if (value !== undefined) {
+                      playerChange(i, { initialMs: value * 60_000 });
+                    }
+                  }}
                 />{' '}
                 мин
               </span>
@@ -327,7 +357,9 @@ export function Setup({
       <Button
         variant="primary"
         className={styles.start}
-        disabled={disabled || !unique || hasColorConflicts || !validSettings(draft)}
+        disabled={
+          disabled || numbers.invalid || !unique || hasColorConflicts || !validSettings(draft)
+        }
         onClick={onStart}
       >
         Начать партию <span>→</span>

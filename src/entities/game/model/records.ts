@@ -354,8 +354,8 @@ export function requiredResultProblems(game: ArchivedGame, includeRanks = true):
         errors.push(`Места противоречат критерию «${comparison.reason}».`);
       }
 
-      if (ranks[a] === ranks[b] && !game.sharedPlacesConfirmed) {
-        errors.push('Подтвердите совместное место явно.');
+      if (Number.isInteger(ranks[a]) && ranks[a] === ranks[b] && !game.sharedPlacesConfirmed) {
+        errors.push('Указаны одинаковые места. Выберите разные или подтвердите ничью.');
       }
     }
   }

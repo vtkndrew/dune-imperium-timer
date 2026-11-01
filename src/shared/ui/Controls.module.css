@@ -63,6 +63,12 @@
   align-items: center;
   min-height: 44px;
 }
+.inline:has(> [role='alert']) {
+  flex-wrap: wrap;
+}
+.inline > [role='alert'] {
+  flex-basis: 100%;
+}
 .checkbox {
   width: 20px;
   height: 20px;

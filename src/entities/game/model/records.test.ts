@@ -218,9 +218,15 @@ describe('Elo and statistics', () => {
     const [a, b] = game.players.map((p) => p.id);
 
     game.finals = { [a]: { ...game.finals?.[a] }, [b]: { ...game.finals?.[a] } };
+    game.rankings = {};
+    expect(resultProblems(game)).not.toContain(
+      'Указаны одинаковые места. Выберите разные или подтвердите ничью.',
+    );
     game.rankings = { [a]: 1, [b]: 1 };
     game.winnerIds = [a, b];
-    expect(resultProblems(game)).toContain('Подтвердите совместное место явно.');
+    expect(resultProblems(game)).toContain(
+      'Указаны одинаковые места. Выберите разные или подтвердите ничью.',
+    );
     game.sharedPlacesConfirmed = true;
     expect(resultProblems(game)).toEqual([]);
     expect(eloHistory(data.archive, profiles).ratings[profiles[0].id]).toBe(1000);

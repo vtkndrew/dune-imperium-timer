@@ -19,7 +19,16 @@ import {
   PlayerStatistics,
   useTable,
 } from '@/features/table';
-import { Button, Input, ActionGroup, Field, Checkbox, Select, Dialog } from '@/shared/ui';
+import {
+  Button,
+  NumberInput,
+  useNumberInputValidation,
+  ActionGroup,
+  Field,
+  Checkbox,
+  Select,
+  Dialog,
+} from '@/shared/ui';
 
 import styles from './TablePage.module.css';
 
@@ -47,6 +56,7 @@ export function TablePage() {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [adjustPlayer, setAdjustPlayer] = useState('');
   const [adjustMinutes, setAdjustMinutes] = useState(1);
+  const adjustmentNumbers = useNumberInputValidation();
   const [busy, setBusy] = useState(false);
   const close = useCallback(() => {
     if (!busy) {
@@ -364,6 +374,7 @@ export function TablePage() {
             ))}
           {tab === 'history' && draft && (
             <ResultEditor
+              key={draft.id}
               draft={draft}
               profiles={table.data.profiles}
               onChange={table.updateDraft}
@@ -490,12 +501,18 @@ export function TablePage() {
               </Field>
               <Field className={styles.field}>
                 Изменить запас на, минут
-                <Input
-                  type="number"
-                  min="-1440"
-                  max="1440"
+                <NumberInput
+                  aria-label="Изменить запас на, минут"
+                  min={-1440}
+                  max={1440}
+                  required
                   value={adjustMinutes}
-                  onChange={(e) => setAdjustMinutes(Number(e.target.value))}
+                  onValidityChange={adjustmentNumbers.onValidityChange}
+                  onValueChange={(value) => {
+                    if (value !== undefined) {
+                      setAdjustMinutes(value);
+                    }
+                  }}
                 />
               </Field>
               <p className={styles.hint}>
@@ -505,6 +522,7 @@ export function TablePage() {
               <Button
                 variant="primary"
                 disabled={
+                  adjustmentNumbers.invalid ||
                   !Number.isInteger(adjustMinutes) ||
                   Math.abs(adjustMinutes) > 1440 ||
                   adjustMinutes === 0

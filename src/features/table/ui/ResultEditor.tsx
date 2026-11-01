@@ -20,13 +20,26 @@ import {
   type Profile,
   type ResultDraft,
 } from '@/entities/game';
-import { TrophyIcon, Stack, Button, Field, Input, Select, Checkbox } from '@/shared/ui';
+import {
+  TrophyIcon,
+  Stack,
+  Button,
+  Field,
+  Input,
+  NumberInput,
+  useNumberInputValidation,
+  Select,
+  Checkbox,
+} from '@/shared/ui';
 
 import { ExpansionPicker, ProfilePicker } from './Choices';
 import styles from './Records.module.css';
 
 const localDate = (at: number) =>
   new Date(at - new Date(at).getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+// Match the stored millisecond precision without replacing the user’s decimal text.
+const normalizeMinutes = (value: number) => Math.round(value * 60000) / 60000;
 
 export function ResultEditor({
   draft,
@@ -46,10 +59,16 @@ export function ResultEditor({
   disabled: boolean;
 }) {
   const [choose, setChoose] = useState<number | null>(null);
+  const numbers = useNumberInputValidation();
   const game = draft.game;
   const manual = isManual(game);
   const proposal = suggestedRanks(game);
   const effectiveRanks = { ...proposal.ranks, ...game.rankings };
+  const sharedPlaces = [...new Set(Object.values(effectiveRanks))]
+    .filter((rank) => Number.isInteger(rank) && rank >= 1 && rank <= game.players.length)
+    .sort((a, b) => a - b)
+    .map((rank) => ({ rank, players: game.players.filter((p) => effectiveRanks[p.id] === rank) }))
+    .filter((group) => group.players.length > 1);
   const problems = resultProblems({ ...game, rankings: effectiveRanks });
   const patch = useCallback(
     (next: ArchivedGame) => onChange({ ...draft, game: next }),
@@ -128,13 +147,13 @@ export function ResultEditor({
   const changeTime = (
     playerId: string,
     key: 'total' | 'turns' | 'combat' | 'hero',
-    raw: string,
+    minutes: number | undefined,
   ) => {
     if (!isManual(game)) {
       return;
     }
 
-    const value = raw === '' ? undefined : Math.round(Number(raw) * 60000);
+    const value = minutes === undefined ? undefined : Math.round(minutes * 60000);
 
     if (value !== undefined && (!Number.isSafeInteger(value) || value < 0 || value > 31536000000)) {
       return;
@@ -187,15 +206,15 @@ export function ResultEditor({
             </Field>
             <Field>
               Раундов
-              <Input
-                type="number"
+              <NumberInput
+                aria-label="Раундов"
                 min={1}
                 max={10000}
+                required
                 value={game.round}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-
-                  if (Number.isInteger(value) && value >= 1 && value <= 10000) {
+                onValidityChange={numbers.onValidityChange}
+                onValueChange={(value) => {
+                  if (value !== undefined) {
                     patch({ ...game, round: value });
                   }
                 }}
@@ -214,25 +233,22 @@ export function ResultEditor({
             </Field>
             <Field>
               Длительность партии, мин (если известна)
-              <Input
-                type="number"
+              <NumberInput
+                aria-label="Длительность партии, мин (если известна)"
                 min={0}
-                step="any"
-                value={game.timing.duration === null ? '' : game.timing.duration / 60000}
-                onChange={(e) => {
-                  const duration =
-                    e.target.value === '' ? null : Math.round(Number(e.target.value) * 60000);
+                max={525600}
+                decimal
+                normalizeValue={normalizeMinutes}
+                value={game.timing.duration === null ? undefined : game.timing.duration / 60000}
+                onValidityChange={numbers.onValidityChange}
+                onValueChange={(value) => {
+                  const duration = value === undefined ? null : Math.round(value * 60000);
 
-                  if (
-                    duration === null ||
-                    (Number.isSafeInteger(duration) && duration >= 0 && duration <= 31536000000)
-                  ) {
-                    patch({
-                      ...game,
-                      endedAt: game.startedAt + (duration ?? 0),
-                      timing: { ...game.timing, duration },
-                    });
-                  }
+                  patch({
+                    ...game,
+                    endedAt: game.startedAt + (duration ?? 0),
+                    timing: { ...game.timing, duration },
+                  });
                 }}
               />
             </Field>
@@ -276,25 +292,14 @@ export function ResultEditor({
               )}
               <Field>
                 Победные очки
-                <Input
-                  type="number"
+                <NumberInput
+                  aria-label="Победные очки"
                   min={0}
                   max={1000000}
-                  step={1}
                   required
-                  inputMode="numeric"
-                  value={String(game.finals?.[player.id]?.points ?? '')}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const value = Number(raw);
-
-                    if (
-                      raw === '' ||
-                      (Number.isSafeInteger(value) && value >= 0 && value <= 1000000)
-                    ) {
-                      changeMetric(player.id, 'points', raw === '' ? undefined : value);
-                    }
-                  }}
+                  value={game.finals?.[player.id]?.points as number | undefined}
+                  onValidityChange={numbers.onValidityChange}
+                  onValueChange={(value) => changeMetric(player.id, 'points', value)}
                 />
               </Field>
               <details>
@@ -360,25 +365,13 @@ export function ResultEditor({
                             <option value="false">Нет</option>
                           </Select>
                         ) : (
-                          <Input
-                            type="number"
+                          <NumberInput
+                            aria-label={field.label}
                             min={0}
                             max={field.max ?? 1000000}
-                            step={1}
-                            value={String(game.finals?.[player.id]?.[field.key] ?? '')}
-                            onChange={(e) => {
-                              const value = Number(e.target.value);
-
-                              if (e.target.value === '') {
-                                changeMetric(player.id, field.key, undefined);
-                              } else if (
-                                Number.isInteger(value) &&
-                                value >= 0 &&
-                                value <= (field.max ?? 1000000)
-                              ) {
-                                changeMetric(player.id, field.key, value);
-                              }
-                            }}
+                            value={game.finals?.[player.id]?.[field.key] as number | undefined}
+                            onValidityChange={numbers.onValidityChange}
+                            onValueChange={(value) => changeMetric(player.id, field.key, value)}
                           />
                         )}
                       </Field>
@@ -390,16 +383,20 @@ export function ResultEditor({
                   <legend>Личное время</legend>
                   <Field>
                     Общий расход, мин
-                    <Input
-                      type="number"
+                    <NumberInput
+                      aria-label="Общий расход, мин"
                       min={0}
-                      step="any"
+                      max={525600}
+                      decimal
+                      normalizeValue={normalizeMinutes}
+                      required
                       value={
                         game.timing.players[player.id]?.total == null
-                          ? ''
+                          ? undefined
                           : Number(game.timing.players[player.id].total) / 60000
                       }
-                      onChange={(e) => changeTime(player.id, 'total', e.target.value)}
+                      onValidityChange={numbers.onValidityChange}
+                      onValueChange={(value) => changeTime(player.id, 'total', value)}
                     />
                   </Field>
                   <details>
@@ -412,16 +409,21 @@ export function ResultEditor({
                       {(['turns', 'combat', 'hero'] as const).map((key, i) => (
                         <Field key={key}>
                           {['Ходы и раскрытие, мин', 'Сражения, мин', 'Действия героя, мин'][i]}
-                          <Input
-                            type="number"
-                            step="any"
+                          <NumberInput
+                            aria-label={
+                              ['Ходы и раскрытие, мин', 'Сражения, мин', 'Действия героя, мин'][i]
+                            }
                             min={0}
+                            max={525600}
+                            decimal
+                            normalizeValue={normalizeMinutes}
                             value={
                               game.timing.players[player.id]?.[key] === undefined
-                                ? ''
+                                ? undefined
                                 : Number(game.timing.players[player.id][key]) / 60000
                             }
-                            onChange={(e) => changeTime(player.id, key, e.target.value)}
+                            onValidityChange={numbers.onValidityChange}
+                            onValueChange={(value) => changeTime(player.id, key, value)}
                           />
                         </Field>
                       ))}
@@ -490,15 +492,23 @@ export function ResultEditor({
                 </div>
               );
             })}
-          {proposal.unresolved.length > 0 && (
+          {sharedPlaces.length > 0 && (
             <>
-              <p>Совместное место допустимо только после явного подтверждения ниже.</p>
+              {sharedPlaces.map(({ rank, players }) => (
+                <p key={rank}>
+                  Одинаковое {rank}-е место: {players.map((p) => p.name).join(', ')}.
+                </p>
+              ))}
+              <p>
+                Если это ошибка, выберите разные места. Если партия действительно закончилась
+                вничью, подтвердите результат.
+              </p>
               <Field inline className={styles.check}>
                 <Checkbox
                   checked={game.sharedPlacesConfirmed ?? false}
                   onChange={(e) => patch({ ...game, sharedPlacesConfirmed: e.target.checked })}
                 />
-                Подтверждаю совместное место, если оно указано
+                Подтверждаю ничью между указанными игроками
               </Field>
             </>
           )}
@@ -509,6 +519,7 @@ export function ResultEditor({
             />
             Не учитывать в рейтинге
           </Field>
+          {numbers.invalid && <p role="status">Исправьте значения в отмеченных полях.</p>}
           {problems.length > 0 && (
             <div role="status" className={styles.validation}>
               <strong>Осталось заполнить или исправить: {problems.length}</strong>
@@ -519,7 +530,11 @@ export function ResultEditor({
               </ul>
             </div>
           )}
-          <Button variant="primary" disabled={disabled || problems.length > 0} onClick={onSave}>
+          <Button
+            variant="primary"
+            disabled={disabled || numbers.invalid || problems.length > 0}
+            onClick={onSave}
+          >
             Подтвердить итоги и сохранить
           </Button>
         </Stack>

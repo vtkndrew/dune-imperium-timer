@@ -40,7 +40,8 @@ for (const count of [2, 3, 4, 5, 6]) {
 
     await points.first().focus();
     await page.keyboard.press('ArrowUp');
-    await expect(points.first()).toHaveValue('11');
+    await expect(points.first()).toHaveValue('10');
+    await points.first().fill('11');
     await points.last().fill('0');
     expect(await positions()).toEqual(before);
 
@@ -97,7 +98,7 @@ test('equal groups need explicit places; optional data do not change them and sc
   }
 
   await expect(save).toBeDisabled();
-  await page.getByLabel('Подтверждаю совместное место, если оно указано').check();
+  await page.getByLabel('Подтверждаю ничью между указанными игроками').check();
   await expect(save).toBeEnabled();
   const second = page.locator('[data-player-id]').nth(1);
 
