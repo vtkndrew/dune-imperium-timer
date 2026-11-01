@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+import { Stack, Button, ActionGroup } from '@/shared/ui';
+
 import { usePwa, isIOS, installApp, applyUpdate } from '../model/pwa';
 
 export function PwaPanel({ beforeUpdate }: { beforeUpdate: () => Promise<void> }) {
@@ -37,7 +39,7 @@ export function PwaPanel({ beforeUpdate }: { beforeUpdate: () => Promise<void> }
   }
 
   return (
-    <section>
+    <Stack as="section">
       <p role="status">{offline}</p>
       {pwa.installed ? (
         <p>Приложение установлено</p>
@@ -45,13 +47,9 @@ export function PwaPanel({ beforeUpdate }: { beforeUpdate: () => Promise<void> }
         <>
           <h3>На главный экран</h3>
           {pwa.canInstall ? (
-            <button
-              className="primary"
-              disabled={pwa.installBusy}
-              onClick={() => void installApp()}
-            >
+            <Button variant="primary" disabled={pwa.installBusy} onClick={() => void installApp()}>
               Установить
-            </button>
+            </Button>
           ) : (
             <p>
               {isIOS()
@@ -68,21 +66,21 @@ export function PwaPanel({ beforeUpdate }: { beforeUpdate: () => Promise<void> }
           {confirm ? (
             <>
               <p>Приложение перезапустится. Локальные данные останутся на устройстве.</p>
-              <div className="actions">
-                <button
-                  className="primary"
+              <ActionGroup>
+                <Button
+                  variant="primary"
                   disabled={saving || pwa.updateBusy}
                   onClick={() => void update()}
                 >
                   Обновить и перезапустить
-                </button>
-                <button disabled={saving || pwa.updateBusy} onClick={() => setConfirm(false)}>
+                </Button>
+                <Button disabled={saving || pwa.updateBusy} onClick={() => setConfirm(false)}>
                   Позже
-                </button>
-              </div>
+                </Button>
+              </ActionGroup>
             </>
           ) : (
-            <button onClick={() => setConfirm(true)}>Обновить</button>
+            <Button onClick={() => setConfirm(true)}>Обновить</Button>
           )}
         </>
       )}
@@ -98,6 +96,6 @@ export function PwaPanel({ beforeUpdate }: { beforeUpdate: () => Promise<void> }
         экспорт и импорт. После аварийного закрытия восстанавливается последнее успешно сохранённое
         состояние.
       </p>
-    </section>
+    </Stack>
   );
 }

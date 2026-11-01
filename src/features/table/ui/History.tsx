@@ -10,7 +10,9 @@ import {
   type ArchivedGame,
   type ResultDraft,
 } from '@/entities/game';
+import { TrophyIcon, Stack, ActionGroup, Button } from '@/shared/ui';
 
+import { ImportPicker } from './ImportPicker';
 import records from './Records.module.css';
 import styles from './Table.module.css';
 
@@ -50,27 +52,27 @@ export function History({
   drafts: ResultDraft[];
   onSelect: (id: string) => void;
   onDraft: (id: string) => void;
-  onImport: () => void;
+  onImport: (file: File | undefined) => void;
   onManual: () => void;
 }) {
   return (
-    <section>
+    <Stack as="section">
       <div className={styles.archiveHeading}>
         <div>
           <span className={styles.eyebrow}>ПОСЛЕ ПОСЛЕДНЕЙ ИНТРИГИ</span>
           <h2>История партий</h2>
         </div>
       </div>
-      <div className="actions">
-        <button onClick={onManual}>＋ Добавить партию вручную</button>
-        <button onClick={onImport}>↓ Импорт JSON</button>
-      </div>
+      <ActionGroup>
+        <Button onClick={onManual}>＋ Добавить партию вручную</Button>
+        <ImportPicker onFile={onImport} />
+      </ActionGroup>
       {drafts.length > 0 && (
         <>
           <h3>Черновики · {drafts.length}</h3>
           <div className={styles.historyList}>
             {drafts.map((draft) => (
-              <button
+              <Button
                 className={styles.historyCard}
                 key={draft.id}
                 onClick={() => onDraft(draft.id)}
@@ -80,7 +82,7 @@ export function History({
                 </span>
                 <strong>{draft.game.players.map((p) => p.name).join(' · ')}</strong>
                 <small>Продолжить заполнение →</small>
-              </button>
+              </Button>
             ))}
           </div>
         </>
@@ -95,7 +97,7 @@ export function History({
         {[...entries]
           .sort((a, b) => b.game.startedAt - a.game.startedAt)
           .map(({ game, importedAt }) => (
-            <button key={game.id} className={styles.historyCard} onClick={() => onSelect(game.id)}>
+            <Button key={game.id} className={styles.historyCard} onClick={() => onSelect(game.id)}>
               <span>
                 {date(game.startedAt)}
                 {importedAt !== null && <small> · Импорт</small>}
@@ -109,17 +111,17 @@ export function History({
                 <b>{duration(game)}</b>
               </div>
               <small>
-                {game.winnerIds ? '♛ ' : ''}
+                {game.winnerIds && <TrophyIcon />}
                 {resultText(game)}
                 {!game.resultsConfirmed ? ' · Неполные итоги' : ''}
               </small>
-            </button>
+            </Button>
           ))}
       </div>
       <p className={styles.footnote}>
         История хранится на этом устройстве. Экспортируйте важные партии.
       </p>
-    </section>
+    </Stack>
   );
 }
 
@@ -141,10 +143,10 @@ export function GameDetails({
   const stats = isManual(game) ? null : statistics(game);
 
   return (
-    <section>
-      <button className={styles.back} onClick={onBack}>
+    <Stack as="section">
+      <Button className={styles.back} onClick={onBack}>
         ← Все партии
-      </button>
+      </Button>
       <span className={styles.eyebrow}>
         {date(game.startedAt)}
         {imported ? ' · ИМПОРТ' : ''}
@@ -181,9 +183,11 @@ export function GameDetails({
       <div className={styles.resultCard}>
         <div>
           <small>РЕЗУЛЬТАТ</small>
-          <strong>{resultText(game)}</strong>
+          <strong>
+            {game.winnerIds && <TrophyIcon />} {resultText(game)}
+          </strong>
         </div>
-        <button onClick={onResult}>Изменить итоги</button>
+        <Button onClick={onResult}>Изменить итоги</Button>
       </div>
       <p className={records.hint}>{ratingCaption(game)}</p>
       <div className={styles.historyList}>
@@ -203,7 +207,7 @@ export function GameDetails({
                     <strong>
                       {game.rankings?.[p.id] ? `${game.rankings[p.id]}. ` : ''}
                       {p.name}
-                      {game.winnerIds?.includes(p.id) ? ' ♛' : ''}
+                      {game.winnerIds?.includes(p.id) && <TrophyIcon />}
                     </strong>
                     <small>{p.heroName}</small>
                   </div>
@@ -247,13 +251,13 @@ export function GameDetails({
             );
           })}
       </div>
-      <div className="actions">
-        <button className="primary" onClick={onExport}>
+      <ActionGroup>
+        <Button variant="primary" onClick={onExport}>
           ↑ Экспорт JSON
-        </button>
-        <button onClick={onDelete}>Удалить партию</button>
-      </div>
-    </section>
+        </Button>
+        <Button onClick={onDelete}>Удалить партию</Button>
+      </ActionGroup>
+    </Stack>
   );
 }
 

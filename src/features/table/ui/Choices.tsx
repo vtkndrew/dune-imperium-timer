@@ -8,7 +8,7 @@ import {
   type Expansion,
   type Profile,
 } from '@/entities/game';
-import { Dialog } from '@/shared/ui';
+import { Button, Field, Input, Checkbox, Dialog } from '@/shared/ui';
 
 import styles from './Records.module.css';
 
@@ -30,7 +30,7 @@ export function ColorPicker({
       <p>Можно выбрать цвет, который уже использует другой игрок.</p>
       <div className={styles.colors}>
         {COLORS.slice(0, count > 4 ? 6 : 4).map((color, index) => (
-          <button
+          <Button
             key={color}
             aria-pressed={value === color}
             onClick={() => {
@@ -42,7 +42,7 @@ export function ColorPicker({
               {value === color ? '✓' : ''}
             </span>
             {colorNames[index]}
-          </button>
+          </Button>
         ))}
       </div>
     </Dialog>
@@ -69,18 +69,18 @@ export function ProfilePicker({
 
   return (
     <Dialog title="Выбрать игрока" onClose={onClose}>
-      <label>
+      <Field>
         Поиск или имя нового игрока
-        <input
+        <Input
           autoFocus
           maxLength={60}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
-      </label>
+      </Field>
       <div className={styles.choices}>
         {matches.map((profile) => (
-          <button
+          <Button
             key={profile.id}
             disabled={excluded.includes(profile.id)}
             onClick={() => {
@@ -90,12 +90,12 @@ export function ProfilePicker({
           >
             {profile.name}
             {excluded.includes(profile.id) ? ' · уже за столом' : ''}
-          </button>
+          </Button>
         ))}
       </div>
       {!profiles.length && <p>Пока нет сохранённых игроков. Введите первое имя.</p>}
-      <button
-        className="primary"
+      <Button
+        variant="primary"
         disabled={!name || exists}
         onClick={() => {
           onChoose({ name });
@@ -103,7 +103,7 @@ export function ProfilePicker({
         }}
       >
         Новый игрок{name ? `: ${name}` : ''}
-      </button>
+      </Button>
     </Dialog>
   );
 }
@@ -120,9 +120,8 @@ export function ExpansionPicker({
       <legend>Использованные дополнения</legend>
       <small>База включена всегда. Выбор определяет поля итогов.</small>
       {EXPANSIONS.map((item) => (
-        <label key={item.id}>
-          <input
-            type="checkbox"
+        <Field inline key={item.id}>
+          <Checkbox
             checked={value.includes(item.id)}
             onChange={(e) =>
               onChange(
@@ -131,7 +130,7 @@ export function ExpansionPicker({
             }
           />
           {item.name}
-        </label>
+        </Field>
       ))}
     </fieldset>
   );

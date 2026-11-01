@@ -190,7 +190,7 @@ export default defineConfig([
       ],
       'react/jsx-boolean-value': 'error',
       'react/jsx-curly-brace-presence': ['error', { children: 'never', props: 'never' }],
-      'react/jsx-no-bind': ['error', { ignoreDOMComponents: true }],
+      'react/jsx-no-bind': ['error', { ignoreDOMComponents: true, allowArrowFunctions: true }],
       'react/self-closing-comp': 'error',
       'react/style-prop-object': 'error',
       'react/void-dom-elements-no-children': 'error',
@@ -206,6 +206,19 @@ export default defineConfig([
     // Playwright callbacks execute in the browser, while their harness uses Node.
     files: ['e2e/**/*.ts', 'pwa-tests/**/*.ts', 'scripts/generate-icons.mjs'],
     languageOptions: { globals: globals.browser },
+  },
+  {
+    files: ['src/features/**/*.tsx', 'src/pages/**/*.tsx'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'JSXOpeningElement[name.name=/^(button|input|select|label)$/]',
+          message:
+            'Use shared/ui controls so spacing, focus and pointer behavior remain consistent.',
+        },
+      ],
+    },
   },
   prettier,
   {

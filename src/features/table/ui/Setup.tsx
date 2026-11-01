@@ -10,6 +10,7 @@ import {
   type Settings,
   type Profile,
 } from '@/entities/game';
+import { SandwormIcon, Stack, Button, Field, Input, Select } from '@/shared/ui';
 
 import { ColorPicker, ProfilePicker, ExpansionPicker } from './Choices';
 import { SandChoice } from './SandChoice';
@@ -100,7 +101,7 @@ export function Setup({
   );
 
   return (
-    <section className={styles.setup}>
+    <Stack as="section" className={styles.setup}>
       <div className={styles.intro}>
         <span className={styles.eyebrow}>ПАРТИЯ В ВАШЕМ РИТМЕ</span>
         <h2>Время — тоже ресурс.</h2>
@@ -117,27 +118,27 @@ export function Setup({
             <small>Порядок по часовой стрелке</small>
           </div>
           <div className={styles.stepper}>
-            <button
+            <Button
               aria-label="Убрать игрока"
               disabled={draft.players.length <= 2 || disabled}
               onClick={() => count(draft.players.length - 1)}
             >
               −
-            </button>
+            </Button>
             <b aria-label="Количество игроков">{draft.players.length}</b>
-            <button
+            <Button
               aria-label="Добавить игрока"
               disabled={draft.players.length >= 6 || disabled}
               onClick={() => count(draft.players.length + 1)}
             >
               +
-            </button>
+            </Button>
           </div>
         </div>
-        <label className={styles.timeSetting}>
+        <Field inline className={styles.timeSetting}>
           Каждому на всю партию{' '}
           <span>
-            <input
+            <Input
               aria-label="Минут каждому"
               type="number"
               min="1"
@@ -147,16 +148,16 @@ export function Setup({
             />
             <span>мин</span>
           </span>
-        </label>
+        </Field>
         <div className={styles.presets}>
           {[15, 20, 30, 45, 60].map((value) => (
-            <button
+            <Button
               key={value}
               aria-pressed={draft.minutes === value}
               onClick={() => minutes(value)}
             >
               {value} мин
-            </button>
+            </Button>
           ))}
         </div>
       </div>
@@ -166,14 +167,18 @@ export function Setup({
       </div>
       <div className={styles.playerForms}>
         {draft.players.map((player, i) => (
-          <fieldset key={player.id} className={styles.playerForm}>
+          <Stack as="fieldset" gap={12} key={player.id} className={styles.playerForm}>
             <legend>
               <span style={{ background: player.color }} className={styles.dot} />
               Место {i + 1}
-              {draft.first === i && <span className={styles.firstBadge}>Первый</span>}
+              {draft.first === i && (
+                <span className={styles.firstBadge}>
+                  <SandwormIcon /> Первый
+                </span>
+              )}
             </legend>
             <div className={styles.nameColor}>
-              <button
+              <Button
                 aria-label={`Имя игрока ${i + 1}`}
                 onClick={(e) => {
                   e.currentTarget.focus();
@@ -181,8 +186,8 @@ export function Setup({
                 }}
               >
                 {player.name} ▾
-              </button>
-              <button
+              </Button>
+              <Button
                 aria-label={`Цвет игрока ${i + 1}`}
                 style={{ background: player.color, minWidth: 44, padding: 0 }}
                 onClick={(e) => {
@@ -191,11 +196,11 @@ export function Setup({
                 }}
               >
                 <span aria-hidden="true">◇</span>
-              </button>
+              </Button>
             </div>
-            <label>
+            <Field>
               Герой
-              <select
+              <Select
                 aria-label={`Герой игрока ${i + 1}`}
                 value={player.heroId}
                 onChange={(e) => {
@@ -213,9 +218,9 @@ export function Setup({
                     ))}
                   </optgroup>
                 ))}
-              </select>
-            </label>
-            <button
+              </Select>
+            </Field>
+            <Button
               className={styles.randomHero}
               disabled={disabled}
               onClick={(e) => {
@@ -234,11 +239,11 @@ export function Setup({
               }}
             >
               Случайный герой
-            </button>
-            <label className={styles.playerMinutes}>
+            </Button>
+            <Field className={styles.playerMinutes}>
               Личное время{' '}
               <span>
-                <input
+                <Input
                   aria-label={`Минут игроку ${i + 1}`}
                   type="number"
                   min="1"
@@ -248,14 +253,14 @@ export function Setup({
                 />{' '}
                 мин
               </span>
-            </label>
-          </fieldset>
+            </Field>
+          </Stack>
         ))}
       </div>
       <div className={styles.firstChoice}>
-        <label>
+        <Field>
           Первый игрок
-          <select
+          <Select
             aria-label="Первый игрок"
             value={draft.first}
             onChange={(e) => change({ ...draft, first: Number(e.target.value) })}
@@ -265,9 +270,9 @@ export function Setup({
                 {p.name}
               </option>
             ))}
-          </select>
-        </label>
-        <button
+          </Select>
+        </Field>
+        <Button
           disabled={disabled}
           onClick={(e) => {
             e.currentTarget.focus();
@@ -279,7 +284,7 @@ export function Setup({
           }}
         >
           ⚄ Случайно
-        </button>
+        </Button>
       </div>
       <ExpansionPicker value={draft.expansions ?? []} onChange={changeExpansions} />
       <details className={styles.notes}>
@@ -301,13 +306,14 @@ export function Setup({
       </details>
       {!unique && <p role="alert">Выберите разных игроков: имена должны быть уникальны.</p>}
       {!validSettings(draft) && <p role="alert">Укажите имена и целое число минут от 1 до 1440.</p>}
-      <button
-        className={`primary ${styles.start}`}
+      <Button
+        variant="primary"
+        className={styles.start}
         disabled={disabled || !unique || !validSettings(draft)}
         onClick={onStart}
       >
         Начать партию <span>→</span>
-      </button>
+      </Button>
       <p className={styles.footnote}>Без регистрации · Работает офлайн после загрузки</p>
       {picker?.kind === 'color' && (
         <ColorPicker
@@ -334,6 +340,6 @@ export function Setup({
         />
       )}
       {random.choice && <SandChoice choice={random.choice} onClose={random.cancel} />}
-    </section>
+    </Stack>
   );
 }

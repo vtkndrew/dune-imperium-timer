@@ -8,7 +8,7 @@ import {
   playerSummary,
   type AppData,
 } from '@/entities/game';
-import { Dialog } from '@/shared/ui';
+import { Stack, Button, Field, Input, Select, Dialog } from '@/shared/ui';
 
 import styles from './Records.module.css';
 
@@ -108,12 +108,12 @@ export function PlayerStatistics({
     .join(' ');
 
   return (
-    <section>
-      {profile && <button onClick={() => setSelected(null)}>← Все игроки</button>}
+    <Stack as="section">
+      {profile && <Button onClick={() => setSelected(null)}>← Все игроки</Button>}
       <span className={styles.eyebrow}>КАЖДАЯ ПАРТИЯ ОСТАВЛЯЕТ СЛЕД</span>
       <h2>{profile?.name ?? 'Статистика игроков'}</h2>
       {profile && (
-        <button
+        <Button
           onClick={(e) => {
             e.currentTarget.focus();
             setName(profile.name);
@@ -122,20 +122,20 @@ export function PlayerStatistics({
           }}
         >
           Изменить имя
-        </button>
+        </Button>
       )}
       <div className={styles.filters}>
-        <label>
+        <Field>
           С даты
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        </label>
-        <label>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </Field>
+        <Field>
           По дату
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        </label>
-        <label>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </Field>
+        <Field>
           Число игроков
-          <select
+          <Select
             aria-label="Число игроков"
             value={count}
             onChange={(e) => setCount(e.target.value)}
@@ -144,11 +144,11 @@ export function PlayerStatistics({
             {[2, 3, 4, 5, 6].map((n) => (
               <option key={n}>{n}</option>
             ))}
-          </select>
-        </label>
-        <label>
+          </Select>
+        </Field>
+        <Field>
           Наборы
-          <select
+          <Select
             aria-label="Наборы"
             value={expansion}
             onChange={(e) => setExpansion(e.target.value)}
@@ -159,8 +159,8 @@ export function PlayerStatistics({
             <option value="immortality">С Бессмертием</option>
             <option value="bloodlines">С Кровными узами</option>
             <option value="unknown">Не указаны</option>
-          </select>
-        </label>
+          </Select>
+        </Field>
       </div>
       <p className={styles.hint}>
         Elo — общий, за всю историю. Фильтры меняют остальные показатели. Игры без измерений не
@@ -178,13 +178,13 @@ export function PlayerStatistics({
               const summary = playerSummary(entries, p.id);
 
               return (
-                <button className={styles.summary} key={p.id} onClick={() => setSelected(p.id)}>
+                <Button className={styles.summary} key={p.id} onClick={() => setSelected(p.id)}>
                   <header>
                     <strong>{p.name}</strong>
                     <b className={styles.rating}>{Math.round(elo.ratings[p.id] ?? 1000)} Elo</b>
                   </header>
                   <SummaryNumbers stats={summary} />
-                </button>
+                </Button>
               );
             })}
           {!data.profiles.length && (
@@ -228,7 +228,7 @@ export function PlayerStatistics({
                 <details>
                   <summary>Изменения по партиям</summary>
                   {history.map((point) => (
-                    <button
+                    <Button
                       key={point.gameId}
                       className={styles.historyItem}
                       onClick={() => onSelectGame(point.gameId)}
@@ -238,7 +238,7 @@ export function PlayerStatistics({
                         {point.delta >= 0 ? '+' : ''}
                         {point.delta.toFixed(1)}
                       </small>
-                    </button>
+                    </Button>
                   ))}
                 </details>
               </>
@@ -284,7 +284,7 @@ export function PlayerStatistics({
               {[...stats.records]
                 .sort((a, b) => b.game.startedAt - a.game.startedAt)
                 .map(({ game, player }) => (
-                  <button
+                  <Button
                     className={styles.historyItem}
                     key={game.id}
                     onClick={() => onSelectGame(game.id)}
@@ -297,26 +297,31 @@ export function PlayerStatistics({
                       {game.winnerIds?.includes(player.id) ? ' · Победа' : ''}
                       {game.rated === false ? ' · Без рейтинга' : ''}
                     </small>
-                  </button>
+                  </Button>
                 ))}
             </div>
           </>
         )
       )}
       {renaming && profile && (
-        <Dialog title="Имя игрока" onClose={close}>
+        <Dialog
+          title="Имя игрока"
+          onClose={close}
+          actions={
+            <Button variant="primary" disabled={busy} onClick={() => void rename()}>
+              Сохранить имя
+            </Button>
+          }
+        >
           <p>Имя изменится во всей текущей истории. Прежнее имя освободится.</p>
-          <label>
+          <Field>
             Новое имя
-            <input maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
-          </label>
+            <Input maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
+          </Field>
           {error && <p role="alert">{error}</p>}
-          <button className="primary" disabled={busy} onClick={() => void rename()}>
-            Сохранить имя
-          </button>
         </Dialog>
       )}
-    </section>
+    </Stack>
   );
 }
 

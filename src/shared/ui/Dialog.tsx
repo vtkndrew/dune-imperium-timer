@@ -1,16 +1,21 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useRef, useId, type ReactNode } from 'react';
 
+import { Button } from './Controls';
 import styles from './Dialog.module.css';
+import { Stack, ActionGroup } from './Layout';
 
 export function Dialog({
   title,
   onClose,
   children,
+  actions,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  actions?: ReactNode;
 }) {
+  const titleId = useId();
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -34,19 +39,22 @@ export function Dialog({
     <dialog
       ref={ref}
       className={styles.dialog}
-      aria-labelledby="dialog-title"
+      aria-labelledby={titleId}
       onCancel={(e) => {
         e.preventDefault();
         onClose();
       }}
     >
       <header className={styles.header}>
-        <h2 id="dialog-title">{title}</h2>
-        <button type="button" aria-label="Закрыть окно" onClick={onClose}>
+        <h2 id={titleId}>{title}</h2>
+        <Button type="button" aria-label="Закрыть окно" onClick={onClose}>
           ×
-        </button>
+        </Button>
       </header>
-      <div className={styles.content}>{children}</div>
+      <Stack className={styles.content}>
+        <Stack>{children}</Stack>
+        {actions && <ActionGroup>{actions}</ActionGroup>}
+      </Stack>
     </dialog>
   );
 }

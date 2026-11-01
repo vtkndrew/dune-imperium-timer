@@ -11,7 +11,7 @@
   line-height: 1.7;
 }
 .intro {
-  padding: 22px 0 28px;
+  padding: 0;
 }
 .intro h2,
 .detailTitle {
@@ -19,7 +19,6 @@
   font-size: clamp(30px, 6vw, 43px);
   font-weight: 500;
   line-height: 1.15;
-  margin: 12px 0;
 }
 .intro p {
   font-size: 14px;
@@ -86,7 +85,7 @@
   min-width: 0;
   padding: 8px 2px;
   font-size: 12px;
-  min-height: 38px;
+  min-height: 44px;
 }
 .presets button[aria-pressed='true'] {
   background: var(--ink);
@@ -98,10 +97,9 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-top: 24px;
 }
 .sectionHeading h3 {
-  margin: 0 0 12px;
+  margin: 0;
 }
 .sectionHeading span {
   color: var(--muted);
@@ -139,20 +137,17 @@
   margin-left: 8px;
 }
 .playerForm label {
-  display: block;
   font-size: 10px;
   color: var(--muted);
-  margin-top: 12px;
 }
 .playerForm select {
-  margin-top: 5px;
   font-size: 12px;
   padding: 10px 28px 10px 6px;
   background-position: right 8px center;
 }
 .nameColor {
   display: flex;
-  gap: 5px;
+  gap: 8px;
 }
 .nameColor button:first-child {
   flex: 1;
@@ -168,7 +163,6 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 5px;
 }
 .playerMinutes input {
   width: 70px;
@@ -179,7 +173,6 @@
   display: flex;
   align-items: end;
   gap: 10px;
-  margin: 22px 0;
 }
 .firstChoice label {
   flex: 1;
@@ -187,7 +180,6 @@
   color: var(--muted);
 }
 .firstChoice select {
-  margin-top: 7px;
   font-size: 13px;
 }
 .firstChoice button {
@@ -209,7 +201,6 @@
 }
 .start {
   width: 100%;
-  margin-top: 16px;
   min-height: 56px;
   display: flex;
   align-items: center;
@@ -226,14 +217,13 @@
   color: var(--muted);
   font-size: 11px;
   line-height: 1.6;
-  margin: 14px 0 22px;
 }
 .phaseBar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 20px 0 14px;
+  padding: 0;
   font-size: 10px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -306,7 +296,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 9px;
-  margin: 14px 0;
 }
 .playerTile {
   border: 1px solid var(--line);
@@ -319,7 +308,7 @@
 .playerTile > div {
   display: flex;
   justify-content: space-between;
-  gap: 5px;
+  gap: 8px;
 }
 .playerTile strong {
   font-size: 12px;
@@ -352,8 +341,7 @@
 }
 .mainActions {
   display: grid;
-  gap: 8px;
-  margin: 14px 0 8px;
+  gap: 12px;
 }
 .mainActions button {
   min-height: 54px;
@@ -362,21 +350,19 @@
 }
 .tools {
   display: flex;
-  gap: 6px;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
 }
 .tools button {
   flex: 1;
   white-space: nowrap;
   font-size: 11px;
   padding: 9px 7px;
-  min-height: 42px;
+  min-height: 44px;
 }
 .phaseHint {
   font-size: 12px;
   color: var(--muted);
-  margin: 12px 0;
 }
 .abilityCard {
   border-left: 3px solid var(--accent);
@@ -425,7 +411,6 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin: 28px 0 20px;
 }
 .archiveHeading h2 {
   font:
@@ -491,7 +476,6 @@
 }
 .back {
   display: block;
-  margin: 16px 0;
   padding-left: 0;
   border: 0;
   background: none;
@@ -499,7 +483,6 @@
 }
 .detailTitle {
   font-size: 33px;
-  margin: 12px 0 24px;
 }
 .summaryGrid {
   display: grid;
@@ -530,7 +513,6 @@
   background: #e9dbc1;
   border-radius: 10px;
   padding: 18px;
-  margin: 16px 0 26px;
 }
 .resultCard small {
   font-size: 9px;
@@ -593,9 +575,6 @@
   font-variant-numeric: tabular-nums;
 }
 @media (min-width: 700px) {
-  .intro {
-    padding-top: 30px;
-  }
   .playerForms {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -686,7 +665,6 @@
 }
 .randomHero {
   width: 100%;
-  margin-top: 8px;
   padding: 8px 4px;
   font-size: 12px;
 }

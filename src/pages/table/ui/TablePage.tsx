@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type MouseEvent } from 'react';
+import { useCallback, useState, type MouseEvent } from 'react';
 
 import {
   exportGame,
@@ -19,7 +19,7 @@ import {
   PlayerStatistics,
   useTable,
 } from '@/features/table';
-import { Dialog } from '@/shared/ui';
+import { Button, Input, ActionGroup, Field, Checkbox, Select, Dialog } from '@/shared/ui';
 
 import styles from './TablePage.module.css';
 
@@ -48,7 +48,6 @@ export function TablePage() {
   const [adjustPlayer, setAdjustPlayer] = useState('');
   const [adjustMinutes, setAdjustMinutes] = useState(1);
   const [busy, setBusy] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
   const close = useCallback(() => {
     if (!busy) {
       setModal(null);
@@ -77,10 +76,6 @@ export function TablePage() {
   const back = useCallback(() => {
     setSelected(null);
     setDraftId(null);
-  }, []);
-  const openImport = useCallback(() => {
-    setMessage('');
-    fileInput.current?.click();
   }, []);
   const entry = table.data.archive.find((a) => a.game.id === selected);
   const draft = table.data.drafts.find((d) => d.id === draftId);
@@ -276,12 +271,12 @@ export function TablePage() {
             <span>Т А Й М Е Р П А Р Т И И</span>
           </div>
         </div>
-        <button onClick={openApp} disabled={!table.ready} aria-label="Приложение">
+        <Button onClick={openApp} disabled={!table.ready} aria-label="Приложение">
           ⚙
-        </button>
+        </Button>
       </header>
       <nav className={styles.nav} aria-label="Основные разделы">
-        <button
+        <Button
           aria-current={tab === 'play' ? 'page' : undefined}
           onClick={() => {
             setTab('play');
@@ -289,8 +284,8 @@ export function TablePage() {
           }}
         >
           {table.data.current ? 'За столом' : 'Новая партия'}
-        </button>
-        <button
+        </Button>
+        <Button
           aria-current={tab === 'history' ? 'page' : undefined}
           onClick={() => {
             setTab('history');
@@ -300,8 +295,8 @@ export function TablePage() {
           }}
         >
           История <span>{table.data.archive.length}</span>
-        </button>
-        <button
+        </Button>
+        <Button
           aria-current={tab === 'stats' ? 'page' : undefined}
           onClick={() => {
             setTab('stats');
@@ -309,7 +304,7 @@ export function TablePage() {
           }}
         >
           Статистика
-        </button>
+        </Button>
       </nav>
       {table.error && (
         <div className={styles.error} role="alert">
@@ -320,28 +315,28 @@ export function TablePage() {
               : 'Сохранённые данные не изменены.'}
           </p>
           {table.outdated && (
-            <button
+            <Button
               onClick={(event) => {
                 event.currentTarget.focus();
                 setModal('reset');
               }}
             >
               Сбросить тестовые данные
-            </button>
+            </Button>
           )}
           {table.conflict ? (
-            <button onClick={() => setModal('reload')}>Загрузить актуальную версию</button>
+            <Button onClick={() => setModal('reload')}>Загрузить актуальную версию</Button>
           ) : (
-            <button onClick={table.ready ? table.retry : table.reload}>Повторить</button>
+            <Button onClick={table.ready ? table.retry : table.reload}>Повторить</Button>
           )}
         </div>
       )}
       {message && (
         <div className={styles.message} role="status">
           {message}
-          <button aria-label="Скрыть сообщение" onClick={() => setMessage('')}>
+          <Button aria-label="Скрыть сообщение" onClick={() => setMessage('')}>
             ×
-          </button>
+          </Button>
         </div>
       )}
       {!table.ready ? (
@@ -352,7 +347,6 @@ export function TablePage() {
             (table.data.current ? (
               <LiveGame
                 game={table.data.current}
-                now={table.now}
                 disabled={table.conflict}
                 onCommand={table.dispatch}
                 onAbility={openAbility}
@@ -395,7 +389,7 @@ export function TablePage() {
               drafts={table.data.drafts}
               onSelect={selectGame}
               onDraft={selectDraft}
-              onImport={openImport}
+              onImport={importFile}
               onManual={openManual}
             />
           )}
@@ -404,19 +398,6 @@ export function TablePage() {
           )}
         </>
       )}
-      <input
-        ref={fileInput}
-        type="file"
-        accept=".json,application/json"
-        aria-label="Файл партии JSON"
-        hidden
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-
-          e.target.value = '';
-          void importFile(file);
-        }}
-      />
       <footer className={styles.footer}>
         <span>ЛИЧНЫЕ ЧАСЫ · ОБЩИЙ СТОЛ</span>
         <span role="status">{saveStatus}</span>
@@ -430,43 +411,41 @@ export function TablePage() {
                 приложения на этом устройстве. Скачанные JSON-файлы и данные других приложений
                 сохранятся.
               </p>
-              <div className="actions">
-                <button
-                  className="danger"
+              <ActionGroup>
+                <Button
+                  variant="danger"
                   disabled={busy}
                   onClick={() => void run(table.resetOutdated)}
                 >
                   Сбросить и начать заново
-                </button>
-                <button disabled={busy} onClick={close}>
+                </Button>
+                <Button disabled={busy} onClick={close}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+              </ActionGroup>
             </>
           )}
           {modal === 'app' && (
             <>
               <div className={styles.preferences}>
-                <label>
-                  <input
-                    type="checkbox"
+                <Field inline>
+                  <Checkbox
                     checked={table.data.settings.sound}
                     onChange={(e) =>
                       table.configure({ ...table.data.settings, sound: e.target.checked })
                     }
                   />{' '}
                   Звук при истечении времени
-                </label>
-                <label>
-                  <input
-                    type="checkbox"
+                </Field>
+                <Field inline>
+                  <Checkbox
                     checked={table.data.settings.vibration}
                     onChange={(e) =>
                       table.configure({ ...table.data.settings, vibration: e.target.checked })
                     }
                   />{' '}
                   Вибрация, если поддерживается
-                </label>
+                </Field>
               </div>
               <p className={styles.hint}>
                 Часы продолжают идти при блокировке экрана. Для остановки используйте паузу.
@@ -483,7 +462,7 @@ export function TablePage() {
               </p>
               <div className={styles.choiceList}>
                 {table.data.current?.players.map((p) => (
-                  <button
+                  <Button
                     key={p.id}
                     onClick={() => {
                       table.dispatch({ type: 'ability', playerId: p.id });
@@ -492,39 +471,39 @@ export function TablePage() {
                   >
                     <strong>{p.name}</strong>
                     <small>{p.heroName}</small>
-                  </button>
+                  </Button>
                 ))}
               </div>
             </>
           )}
           {modal === 'adjust' && (
             <>
-              <label className={styles.field}>
+              <Field className={styles.field}>
                 Игрок
-                <select value={adjustPlayer} onChange={(e) => setAdjustPlayer(e.target.value)}>
+                <Select value={adjustPlayer} onChange={(e) => setAdjustPlayer(e.target.value)}>
                   {table.data.current?.players.map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name}
                     </option>
                   ))}
-                </select>
-              </label>
-              <label className={styles.field}>
+                </Select>
+              </Field>
+              <Field className={styles.field}>
                 Изменить запас на, минут
-                <input
+                <Input
                   type="number"
                   min="-1440"
                   max="1440"
                   value={adjustMinutes}
                   onChange={(e) => setAdjustMinutes(Number(e.target.value))}
                 />
-              </label>
+              </Field>
               <p className={styles.hint}>
                 Положительное число добавляет время, отрицательное убирает. Потраченное время в
                 статистике не меняется.
               </p>
-              <button
-                className="primary"
+              <Button
+                variant="primary"
                 disabled={
                   !Number.isInteger(adjustMinutes) ||
                   Math.abs(adjustMinutes) > 1440 ||
@@ -540,7 +519,7 @@ export function TablePage() {
                 }}
               >
                 Применить поправку
-              </button>
+              </Button>
             </>
           )}
           {modal === 'finish' && (
@@ -549,18 +528,18 @@ export function TablePage() {
                 Остановить часы и перейти к итогам? Время будет зафиксировано. Черновик можно
                 заполнить позже, даже после следующей партии.
               </p>
-              <div className="actions">
-                <button
-                  className="primary"
+              <ActionGroup>
+                <Button
+                  variant="primary"
                   disabled={busy || table.conflict}
                   onClick={() => void finish()}
                 >
                   Остановить и заполнить итоги
-                </button>
-                <button disabled={busy} onClick={close}>
+                </Button>
+                <Button disabled={busy} onClick={close}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+              </ActionGroup>
             </>
           )}
           {(modal === 'delete' || modal === 'discard') && (
@@ -570,9 +549,9 @@ export function TablePage() {
                   ? 'Партия и черновик её правок будут удалены. Статистика и последующий Elo пересчитаются.'
                   : 'Незаполненные итоги будут удалены. Если это правки существующей партии, прежняя запись останется.'}
               </p>
-              <div className="actions">
-                <button
-                  className="danger"
+              <ActionGroup>
+                <Button
+                  variant="danger"
                   disabled={busy || table.conflict}
                   onClick={() =>
                     void run(async () => {
@@ -589,11 +568,11 @@ export function TablePage() {
                   }
                 >
                   Удалить
-                </button>
-                <button disabled={busy} onClick={close}>
+                </Button>
+                <Button disabled={busy} onClick={close}>
                   Отмена
-                </button>
-              </div>
+                </Button>
+              </ActionGroup>
             </>
           )}
           {modal === 'import' && preview && (
@@ -611,9 +590,9 @@ export function TablePage() {
               <fieldset className={styles.preferences}>
                 <legend>Привязка игроков</legend>
                 {preview.players.map((p) => (
-                  <label key={p.id}>
+                  <Field key={p.id}>
                     {p.name}
-                    <select
+                    <Select
                       aria-label={`Профиль: ${p.name}`}
                       value={mapping[p.id] ?? ''}
                       onChange={(e) => setMapping({ ...mapping, [p.id]: e.target.value })}
@@ -627,15 +606,15 @@ export function TablePage() {
                           {profile.name}
                         </option>
                       ))}
-                    </select>
-                  </label>
+                    </Select>
+                  </Field>
                 ))}
               </fieldset>
               <p className={styles.hint}>Текущая игра и остальные записи не изменятся.</p>
               {duplicate ? (
                 <>
                   <p>Эта партия уже есть в истории. Дубликат не будет создан.</p>
-                  <button onClick={close}>Закрыть</button>
+                  <Button onClick={close}>Закрыть</Button>
                 </>
               ) : (
                 <>
@@ -645,18 +624,18 @@ export function TablePage() {
                       существующую архивную запись.
                     </p>
                   )}
-                  <div className="actions">
-                    <button
-                      className="primary"
+                  <ActionGroup>
+                    <Button
+                      variant="primary"
                       disabled={busy || table.conflict}
                       onClick={() => void confirmImport()}
                     >
                       {busy ? 'Сохраняем…' : importLabel}
-                    </button>
-                    <button disabled={busy} onClick={close}>
+                    </Button>
+                    <Button disabled={busy} onClick={close}>
                       Отмена
-                    </button>
-                  </div>
+                    </Button>
+                  </ActionGroup>
                 </>
               )}
             </>
@@ -667,19 +646,19 @@ export function TablePage() {
                 Загрузится последняя сохранённая версия из другого окна. Несохранённые изменения
                 этого окна будут потеряны.
               </p>
-              <div className="actions">
-                <button className="primary" onClick={table.reload}>
+              <ActionGroup>
+                <Button variant="primary" onClick={table.reload}>
                   Загрузить сохранённую версию
-                </button>
-                <button onClick={close}>Остаться в этом окне</button>
-              </div>
+                </Button>
+                <Button onClick={close}>Остаться в этом окне</Button>
+              </ActionGroup>
             </>
           )}
           {modalError && (
             <div role="alert">
               <p>{modalError}</p>
               {table.ready && table.error && !table.conflict && (
-                <button onClick={table.retry}>Повторить сохранение</button>
+                <Button onClick={table.retry}>Повторить сохранение</Button>
               )}
             </div>
           )}

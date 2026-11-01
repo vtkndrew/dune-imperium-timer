@@ -10,6 +10,8 @@ export interface SandChoice {
   result: string;
   settled: boolean;
   reduced: boolean;
+  particles: { x: number; y: number; dx: number; dy: number; duration: number; delay: number }[];
+  finish: () => void;
 }
 
 export function useSandChoice() {
@@ -51,22 +53,52 @@ export function useSandChoice() {
       const frames = Array.from({ length: 18 }, (_, i) => names[(index + i + 1) % names.length]);
 
       frames.push(names[index]);
-      setChoice({ title, phrase, frames, result: names[index], settled: false, reduced });
+      // Decorative randomness is sampled after the winner and never enters its selection.
+      const particles = reduced
+        ? []
+        : Array.from({ length: 24 }, () => ({
+            x: Math.random() * 100,
+            y: Math.random() * 100,
+            dx: (Math.random() - 0.5) * 160,
+            dy: (Math.random() - 0.5) * 120,
+            duration: 1200 + Math.random() * 1600,
+            delay: -Math.random() * 2400,
+          }));
+      let completed = false;
 
       const settle = () => {
-        if (operation.current !== current || document.hidden) {
+        if (operation.current !== current || document.hidden || completed) {
           return;
         }
 
+        completed = true;
         apply(index);
-        setChoice({ title, phrase, frames, result: names[index], settled: true, reduced });
+        setChoice({
+          title,
+          phrase,
+          frames,
+          result: names[index],
+          settled: true,
+          reduced,
+          particles,
+          finish: settle,
+        });
         current.timers.push(window.setTimeout(cancel, 3000));
       };
 
+      setChoice({
+        title,
+        phrase,
+        frames,
+        result: names[index],
+        settled: false,
+        reduced,
+        particles,
+        finish: settle,
+      });
+
       if (reduced) {
         settle();
-      } else {
-        current.timers.push(window.setTimeout(settle, 2000));
       }
     },
     [cancel],

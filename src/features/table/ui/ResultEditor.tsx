@@ -17,6 +17,16 @@ import {
   type Profile,
   type ResultDraft,
 } from '@/entities/game';
+import {
+  TrophyIcon,
+  Stack,
+  Button,
+  Field,
+  Input,
+  Select,
+  Checkbox,
+  ActionGroup,
+} from '@/shared/ui';
 
 import { ExpansionPicker, ProfilePicker } from './Choices';
 import styles from './Records.module.css';
@@ -168,8 +178,8 @@ export function ResultEditor({
   };
 
   return (
-    <section className={styles.editor}>
-      <button onClick={onBack}>← История</button>
+    <Stack as="section" className={styles.editor}>
+      <Button onClick={onBack}>← История</Button>
       <span className={styles.eyebrow}>
         {draft.editingId ? 'ПРАВКИ СОХРАНЯЮТСЯ В ЧЕРНОВИК' : 'ЧЕРНОВИК ИТОГОВ'}
       </span>
@@ -178,12 +188,12 @@ export function ResultEditor({
         Заполните состояние после эффектов конца игры. Можно вернуться позже или начать новую
         партию. {draft.editingId && 'Прежние результаты действуют до подтверждения правок.'}
       </p>
-      <fieldset disabled={disabled} className={styles.bodyFieldset}>
+      <Stack as="fieldset" disabled={disabled} className={styles.bodyFieldset}>
         {manual && (
           <div className={styles.fieldGrid}>
-            <label>
+            <Field>
               Дата и время партии
-              <input
+              <Input
                 type="datetime-local"
                 value={localDate(game.startedAt)}
                 onChange={(e) => {
@@ -194,10 +204,10 @@ export function ResultEditor({
                   }
                 }}
               />
-            </label>
-            <label>
+            </Field>
+            <Field>
               Раундов
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={10000}
@@ -210,21 +220,21 @@ export function ResultEditor({
                   }
                 }}
               />
-            </label>
-            <label>
+            </Field>
+            <Field>
               Участников
-              <select
+              <Select
                 value={game.players.length}
                 onChange={(e) => changeCount(Number(e.target.value))}
               >
                 {[2, 3, 4, 5, 6].map((n) => (
                   <option key={n}>{n}</option>
                 ))}
-              </select>
-            </label>
-            <label>
+              </Select>
+            </Field>
+            <Field>
               Длительность партии, мин (если известна)
-              <input
+              <Input
                 type="number"
                 min={0}
                 step="any"
@@ -245,10 +255,9 @@ export function ResultEditor({
                   }
                 }}
               />
-            </label>
-            <label className={styles.check}>
-              <input
-                type="checkbox"
+            </Field>
+            <Field inline className={styles.check}>
+              <Checkbox
                 checked={game.timing.kind === 'none'}
                 onChange={(e) =>
                   patch({
@@ -262,41 +271,41 @@ export function ResultEditor({
                 }
               />
               Без таймера
-            </label>
+            </Field>
           </div>
         )}
         <ExpansionPicker value={game.expansions ?? []} onChange={changeExpansions} />
         <nav className={styles.steps} aria-label="Заполнение итогов">
           {game.players.map((p, i) => (
-            <button
+            <Button
               key={p.id}
               aria-current={activeStep === i ? 'step' : undefined}
               onClick={() => setStep(i)}
             >
               {i + 1}. {p.name}
-            </button>
+            </Button>
           ))}
-          <button
+          <Button
             aria-current={!player ? 'step' : undefined}
             onClick={() => setStep(game.players.length)}
           >
             Места и сохранение
-          </button>
+          </Button>
         </nav>
         {player ? (
-          <article className={styles.playerEditor}>
+          <Stack as="article" className={styles.playerEditor}>
             <h3>{player.name}</h3>
-            <button
+            <Button
               onClick={(e) => {
                 e.currentTarget.focus();
                 setChoose(activeStep);
               }}
             >
               Выбрать профиль: {player.name}
-            </button>
-            <label>
+            </Button>
+            <Field>
               Герой
-              <select
+              <Select
                 aria-label={`Герой ${player.name}`}
                 value={player.heroId}
                 onChange={(e) => {
@@ -310,14 +319,14 @@ export function ResultEditor({
                     {hero.name}
                   </option>
                 ))}
-              </select>
-            </label>
+              </Select>
+            </Field>
             <div className={styles.fieldGrid}>
               {applicableMetrics(game).map((field) => (
-                <label key={field.key}>
+                <Field key={field.key}>
                   {field.label}
                   {field.boolean ? (
-                    <select
+                    <Select
                       aria-label={field.label}
                       value={
                         game.finals?.[player.id]?.[field.key] === undefined
@@ -334,9 +343,9 @@ export function ResultEditor({
                       <option value="">Выберите</option>
                       <option value="true">Да</option>
                       <option value="false">Нет</option>
-                    </select>
+                    </Select>
                   ) : (
-                    <input
+                    <Input
                       type="number"
                       min={0}
                       max={field.max ?? 1000000}
@@ -357,15 +366,15 @@ export function ResultEditor({
                       }}
                     />
                   )}
-                </label>
+                </Field>
               ))}
             </div>
             {isManual(game) && game.timing.kind === 'summary' && (
-              <fieldset>
+              <Stack as="fieldset">
                 <legend>Личное время</legend>
-                <label>
+                <Field>
                   Общий расход, мин
-                  <input
+                  <Input
                     type="number"
                     min={0}
                     step="any"
@@ -376,49 +385,51 @@ export function ResultEditor({
                     }
                     onChange={(e) => changeTime('total', e.target.value)}
                   />
-                </label>
+                </Field>
                 <details>
                   <summary>Разбивка времени — необязательно</summary>
                   <p>
                     Если заполняете, укажите все три категории. Их сумма должна совпадать с общим
                     расходом.
                   </p>
-                  {(['turns', 'combat', 'hero'] as const).map((key, i) => (
-                    <label key={key}>
-                      {['Ходы и раскрытие, мин', 'Сражения, мин', 'Действия героя, мин'][i]}
-                      <input
-                        type="number"
-                        step="any"
-                        min={0}
-                        value={
-                          game.timing.players[player.id]?.[key] === undefined
-                            ? ''
-                            : Number(game.timing.players[player.id][key]) / 60000
-                        }
-                        onChange={(e) => changeTime(key, e.target.value)}
-                      />
-                    </label>
-                  ))}
+                  <Stack>
+                    {(['turns', 'combat', 'hero'] as const).map((key, i) => (
+                      <Field key={key}>
+                        {['Ходы и раскрытие, мин', 'Сражения, мин', 'Действия героя, мин'][i]}
+                        <Input
+                          type="number"
+                          step="any"
+                          min={0}
+                          value={
+                            game.timing.players[player.id]?.[key] === undefined
+                              ? ''
+                              : Number(game.timing.players[player.id][key]) / 60000
+                          }
+                          onChange={(e) => changeTime(key, e.target.value)}
+                        />
+                      </Field>
+                    ))}
+                  </Stack>
                 </details>
-              </fieldset>
+              </Stack>
             )}
-            <div className="actions">
-              <button disabled={activeStep === 0} onClick={() => setStep(activeStep - 1)}>
+            <ActionGroup>
+              <Button disabled={activeStep === 0} onClick={() => setStep(activeStep - 1)}>
                 ← Назад
-              </button>
-              <button
-                className="primary"
+              </Button>
+              <Button
+                variant="primary"
                 onClick={() => {
                   setStep(activeStep + 1);
                   window.scrollTo({ top: 0, behavior: 'instant' });
                 }}
               >
                 Далее →
-              </button>
-            </div>
-          </article>
+              </Button>
+            </ActionGroup>
+          </Stack>
         ) : (
-          <div className={styles.review}>
+          <Stack className={styles.review}>
             <h3>Итоговые места</h3>
             <p>
               Сначала ПО, затем Chaumurky, пряность, солярии, вода, гарнизон и более позднее
@@ -441,9 +452,9 @@ export function ResultEditor({
                     </small>
                   </div>
                   {group ? (
-                    <label>
+                    <Field>
                       Место
-                      <select
+                      <Select
                         aria-label={`Место: ${p.name}`}
                         value={game.rankings?.[p.id] ?? ''}
                         onChange={(e) => {
@@ -464,10 +475,12 @@ export function ResultEditor({
                             <option key={rank}>{rank}</option>
                           ),
                         )}
-                      </select>
-                    </label>
+                      </Select>
+                    </Field>
                   ) : (
-                    <b>{effectiveRanks[p.id]}</b>
+                    <b>
+                      {effectiveRanks[p.id] === 1 && <TrophyIcon />} {effectiveRanks[p.id]}
+                    </b>
                   )}
                 </div>
               );
@@ -478,24 +491,22 @@ export function ResultEditor({
                   Для равных по известным критериям участников укажите порядок по более позднему
                   раскрытию.
                 </p>
-                <label className={styles.check}>
-                  <input
-                    type="checkbox"
+                <Field inline className={styles.check}>
+                  <Checkbox
                     checked={game.sharedPlacesConfirmed ?? false}
                     onChange={(e) => patch({ ...game, sharedPlacesConfirmed: e.target.checked })}
                   />
                   Подтверждаю совместное место, если оно указано
-                </label>
+                </Field>
               </>
             )}
-            <label className={styles.check}>
-              <input
-                type="checkbox"
+            <Field inline className={styles.check}>
+              <Checkbox
                 checked={game.rated === false}
                 onChange={(e) => patch({ ...game, rated: !e.target.checked })}
               />
               Не учитывать в рейтинге
-            </label>
+            </Field>
             {problems.length > 0 && (
               <div role="status" className={styles.validation}>
                 <strong>Осталось заполнить или исправить: {problems.length}</strong>
@@ -506,15 +517,15 @@ export function ResultEditor({
                 </ul>
               </div>
             )}
-            <button className="primary" disabled={disabled || problems.length > 0} onClick={onSave}>
+            <Button variant="primary" disabled={disabled || problems.length > 0} onClick={onSave}>
               Подтвердить места и сохранить
-            </button>
-          </div>
+            </Button>
+          </Stack>
         )}
-      </fieldset>
-      <button className={styles.discard} onClick={onDiscard} disabled={disabled}>
+      </Stack>
+      <Button className={styles.discard} onClick={onDiscard} disabled={disabled}>
         Удалить черновик
-      </button>
+      </Button>
       {choose !== null && (
         <ProfilePicker
           profiles={profiles}
@@ -523,6 +534,6 @@ export function ResultEditor({
           onClose={closeChoose}
         />
       )}
-    </section>
+    </Stack>
   );
 }

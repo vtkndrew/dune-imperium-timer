@@ -7,12 +7,13 @@ import {
   type Command,
   type Game,
 } from '@/entities/game';
+import { Stack, Button, SandwormIcon } from '@/shared/ui';
 
 import styles from './Table.module.css';
+import { useDisplayTime } from '../model/useDisplayTime';
 
 export function LiveGame({
   game,
-  now,
   disabled,
   onCommand,
   onAbility,
@@ -20,13 +21,13 @@ export function LiveGame({
   onFinish,
 }: {
   game: Game;
-  now: number;
   disabled: boolean;
   onCommand: (command: Command) => void;
   onAbility: () => void;
   onAdjust: () => void;
   onFinish: () => void;
 }) {
+  const now = useDisplayTime();
   const stats = statistics(game, now);
   const clock = clockOwner(game);
   const ability = game.queue[0];
@@ -56,7 +57,7 @@ export function LiveGame({
   }
 
   return (
-    <section className={styles.live}>
+    <Stack as="section" className={styles.live}>
       <div className={styles.phaseBar}>
         <span>
           РАУНД <b>{game.round.toString().padStart(2, '0')}</b>
@@ -98,8 +99,8 @@ export function LiveGame({
             <div>
               <strong>{p.name}</strong>
               {game.first === i && (
-                <span title="Первый игрок" aria-label="Первый игрок">
-                  ♛
+                <span role="img" title="Первый игрок" aria-label="Первый игрок">
+                  <SandwormIcon />
                 </span>
               )}
             </div>
@@ -152,68 +153,68 @@ export function LiveGame({
       )}
       <div className={styles.mainActions}>
         {game.paused ? (
-          <button
-            className="primary"
+          <Button
+            variant="primary"
             disabled={disabled}
             onClick={() => onCommand({ type: 'resume' })}
           >
             ▶ Продолжить
-          </button>
+          </Button>
         ) : (
           <>
             {ability ? (
               <>
-                <button
-                  className="primary"
+                <Button
+                  variant="primary"
                   disabled={blocked}
                   onClick={() => onCommand({ type: 'ability-done' })}
                 >
                   Готово →
-                </button>
+                </Button>
                 {ability.optional && (
-                  <button disabled={blocked} onClick={() => onCommand({ type: 'ability-done' })}>
+                  <Button disabled={blocked} onClick={() => onCommand({ type: 'ability-done' })}>
                     Не применяется
-                  </button>
+                  </Button>
                 )}
               </>
             ) : (
               <>
                 {game.phase === 'turns' && (
                   <>
-                    <button
-                      className="primary"
+                    <Button
+                      variant="primary"
                       disabled={blocked}
                       onClick={() => onCommand({ type: 'next' })}
                     >
                       Следующий ход →
-                    </button>
-                    <button disabled={blocked} onClick={() => onCommand({ type: 'reveal' })}>
+                    </Button>
+                    <Button disabled={blocked} onClick={() => onCommand({ type: 'reveal' })}>
                       Завершить раскрытие
-                    </button>
+                    </Button>
                   </>
                 )}
                 {game.phase === 'combat' && (
                   <>
-                    <button
-                      className="primary"
+                    <Button
+                      variant="primary"
                       disabled={blocked}
                       onClick={() => onCommand({ type: 'pass' })}
                     >
                       Пас →
-                    </button>
-                    <button disabled={blocked} onClick={() => onCommand({ type: 'combat-action' })}>
+                    </Button>
+                    <Button disabled={blocked} onClick={() => onCommand({ type: 'combat-action' })}>
                       Действие завершено →
-                    </button>
+                    </Button>
                   </>
                 )}
                 {shared && (
-                  <button
-                    className="primary"
+                  <Button
+                    variant="primary"
                     disabled={blocked}
                     onClick={() => onCommand({ type: 'next-round' })}
                   >
                     Начать следующий раунд →
-                  </button>
+                  </Button>
                 )}
               </>
             )}
@@ -222,20 +223,20 @@ export function LiveGame({
       </div>
       <div className={styles.tools}>
         {!game.paused && (
-          <button disabled={disabled} onClick={() => onCommand({ type: 'pause' })}>
+          <Button disabled={disabled} onClick={() => onCommand({ type: 'pause' })}>
             Ⅱ Пауза
-          </button>
+          </Button>
         )}
-        <button disabled={!game.undo || disabled} onClick={() => onCommand({ type: 'undo' })}>
+        <Button disabled={!game.undo || disabled} onClick={() => onCommand({ type: 'undo' })}>
           ↶ Отменить
-        </button>
-        <button disabled={blocked || Boolean(ability)} onClick={onAbility}>
+        </Button>
+        <Button disabled={blocked || Boolean(ability)} onClick={onAbility}>
           ◇ Способность
-        </button>
+        </Button>
         {game.paused && (
-          <button disabled={disabled} onClick={onAdjust}>
+          <Button disabled={disabled} onClick={onAdjust}>
             ± Время
-          </button>
+          </Button>
         )}
       </div>
       {!ability && !shared && (
@@ -245,11 +246,13 @@ export function LiveGame({
         </details>
       )}
       <div className={styles.gameFooter}>
-        <span>♛ {game.players[game.first].name} — первый игрок</span>
-        <button disabled={disabled} onClick={onFinish}>
+        <span>
+          <SandwormIcon /> {game.players[game.first].name} — первый игрок
+        </span>
+        <Button disabled={disabled} onClick={onFinish}>
           Завершить партию
-        </button>
+        </Button>
       </div>
-    </section>
+    </Stack>
   );
 }

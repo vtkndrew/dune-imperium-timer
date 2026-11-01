@@ -1,0 +1,19 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.stack > :not(dialog) {
+  margin-block: 0;
+}
+.stack > button {
+  align-self: flex-start;
+  max-width: 100%;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-actions);
+  min-width: 0;
+}

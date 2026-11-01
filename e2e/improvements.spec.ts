@@ -132,7 +132,14 @@ test('sand choice commits once, cancels cleanly and returns focus', async ({ pag
   await expect(hero).toHaveValue(original);
   await expect(opener).toBeFocused();
   await opener.click();
-  await page.clock.runFor(2000);
+  await page
+    .getByRole('dialog')
+    .locator('[class*=ribbon]')
+    .evaluate((node) => {
+      node.getAnimations().forEach((animation) => {
+        animation.finish();
+      });
+    });
   await expect(hero).not.toHaveValue(original);
   const result = await hero.inputValue();
 

@@ -31,7 +31,6 @@ export function useTable() {
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [now, setNow] = useState(Date.now);
   const repo = useRef(new GameRepository());
   const latest = useRef(data);
   const saved = useRef<AppData | null>(null);
@@ -42,12 +41,6 @@ export function useTable() {
   const atomic = useRef(false);
   const audio = useRef<AudioContext | null>(null);
   const alerted = useRef(new Set<string>());
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 200);
-
-    return () => window.clearInterval(timer);
-  }, []);
 
   const enqueue = useCallback((next: AppData) => {
     pending.current += 1;
@@ -216,8 +209,6 @@ export function useTable() {
       } else {
         commit({ ...latest.current, current: game });
       }
-
-      setNow(Date.now());
     },
     [commit, conflict, unlockAudio],
   );
@@ -492,44 +483,56 @@ export function useTable() {
       return;
     }
 
-    const stats = statistics(game, now);
+    const checkExpiry = () => {
+      const stats = statistics(game, Date.now());
 
-    for (const player of game.players) {
-      const key = `${game.id}:${player.id}`;
+      for (const player of game.players) {
+        const key = `${game.id}:${player.id}`;
 
-      if (stats.players[player.id].remaining > 0) {
-        alerted.current.delete(key);
-        continue;
+        if (stats.players[player.id].remaining > 0) {
+          alerted.current.delete(key);
+          continue;
+        }
+
+        if (alerted.current.has(key)) {
+          continue;
+        }
+
+        alerted.current.add(key);
+
+        if (data.settings.vibration) {
+          navigator.vibrate?.([120, 70, 120]);
+        }
+
+        const ctx = audio.current;
+
+        if (!data.settings.sound || !ctx || ctx.state !== 'running') {
+          continue;
+        }
+
+        const oscillator = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        oscillator.frequency.value = 660;
+        gain.gain.value = 0.12;
+        oscillator.connect(gain);
+        gain.connect(ctx.destination);
+        oscillator.start();
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+        oscillator.stop(ctx.currentTime + 0.5);
       }
+    };
 
-      if (alerted.current.has(key)) {
-        continue;
-      }
+    checkExpiry();
+    const timer = window.setInterval(checkExpiry, 200);
 
-      alerted.current.add(key);
+    document.addEventListener('visibilitychange', checkExpiry);
 
-      if (data.settings.vibration) {
-        navigator.vibrate?.([120, 70, 120]);
-      }
-
-      const ctx = audio.current;
-
-      if (!data.settings.sound || !ctx || ctx.state !== 'running') {
-        continue;
-      }
-
-      const oscillator = ctx.createOscillator();
-      const gain = ctx.createGain();
-
-      oscillator.frequency.value = 660;
-      gain.gain.value = 0.12;
-      oscillator.connect(gain);
-      gain.connect(ctx.destination);
-      oscillator.start();
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-      oscillator.stop(ctx.currentTime + 0.5);
-    }
-  }, [data, now]);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', checkExpiry);
+    };
+  }, [data]);
   const running = Boolean(data.current && !data.current.paused);
 
   useEffect(() => {
@@ -572,7 +575,6 @@ export function useTable() {
     error,
     conflict,
     saving,
-    now,
     dispatch,
     begin,
     configure,
