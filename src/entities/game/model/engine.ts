@@ -12,20 +12,6 @@ import type {
 } from './types';
 
 export const COLORS = ['#c43d35', '#e3b62f', '#47834c', '#315fa8', '#75bfdb', '#92989e'];
-const OLD_COLORS = ['#a45539', '#47798a', '#697849', '#87628a', '#bb842b', '#5963a5'];
-
-export function upgradeDefaultColors(settings: Settings): Settings {
-  if (!settings.players.some((p, i) => p.color === OLD_COLORS[i])) {
-    return settings;
-  }
-
-  return {
-    ...settings,
-    players: settings.players.map((p, i) =>
-      p.color === OLD_COLORS[i] ? { ...p, color: COLORS[i] } : p,
-    ),
-  };
-}
 
 export function defaultSettings(): Settings {
   return {
@@ -316,7 +302,7 @@ export function transition(current: Game, command: Command, now: number): Game {
     if (command.type === 'reveal') {
       game.revealed.push(player.id);
       game.lastRevealOrder = [
-        ...(game.lastRevealOrder ?? game.revealed).filter((id) => id !== player.id),
+        ...(game.lastRevealOrder ?? []).filter((id) => id !== player.id),
         player.id,
       ];
 

@@ -220,30 +220,6 @@ export function validGame(value: unknown): value is Game {
   );
 }
 
-export function validLegacyArchive(value: unknown): value is ArchiveEntry {
-  return (
-    object(value) &&
-    validGame(value.game) &&
-    value.game.endedAt !== null &&
-    value.game.undo === null &&
-    (value.importedAt === null || stamp(value.importedAt))
-  );
-}
-
-export function validLegacyData(
-  value: unknown,
-): value is Pick<AppData, 'settings' | 'current' | 'archive'> {
-  return (
-    object(value) &&
-    validSettings(value.settings) &&
-    (value.current === null || (validGame(value.current) && value.current.endedAt === null)) &&
-    Array.isArray(value.archive) &&
-    value.archive.every(validLegacyArchive) &&
-    new Set(value.archive.map((a) => a.game.id)).size === value.archive.length &&
-    !value.archive.some((a) => a.game.id === (value.current as Game | null)?.id)
-  );
-}
-
 const expansions = (value: unknown) =>
   value === undefined ||
   (Array.isArray(value) &&
@@ -504,26 +480,10 @@ export function parseGameFile(contents: string): ArchivedGame {
     throw new Error('Не удалось прочитать JSON. Файл повреждён.');
   }
 
-  if (
-    !object(value) ||
-    value.app !== 'dune-imperium-timer' ||
-    ![1, 2].includes(Number(value.formatVersion)) ||
-    typeof value.formatVersion !== 'number'
-  ) {
-    throw new Error('Это не экспорт Dune Imperium Timer или версия файла пока не поддерживается.');
-  }
-
-  if (value.formatVersion === 1) {
-    if (!validGame(value.game) || value.game.endedAt === null || value.game.undo !== null) {
-      throw new Error(
-        'Некорректные данные партии. Нужна завершённая игра с полной историей времени.',
-      );
-    }
-
-    return {
-      ...value.game,
-      players: value.game.players.map(({ profileId: _profileId, ...player }) => player),
-    };
+  if (!object(value) || value.app !== 'dune-imperium-timer' || value.formatVersion !== 2) {
+    throw new Error(
+      'Нужен экспорт Dune Imperium Timer в формате JSON v2. Другие версии не поддерживаются.',
+    );
   }
 
   if (!validRecord(value.game)) {

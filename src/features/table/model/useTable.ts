@@ -15,7 +15,7 @@ import {
   startGame,
   statistics,
   transition,
-  upgradeDefaultColors,
+  OutdatedStorage,
   type AppData,
   type Command,
   type ArchivedGame,
@@ -27,6 +27,7 @@ import { StorageConflict } from '@/shared/lib';
 export function useTable() {
   const [data, setData] = useState<AppData>(initialData);
   const [ready, setReady] = useState(false);
+  const [outdated, setOutdated] = useState(false);
   const [error, setError] = useState('');
   const [conflict, setConflict] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -89,30 +90,26 @@ export function useTable() {
           return;
         }
 
-        const settings = upgradeDefaultColors(result.data.settings);
-        const next = settings === result.data.settings ? result.data : { ...result.data, settings };
+        const next = result.data;
 
         latest.current = next;
         saved.current = result.revision ? result.data : null;
         revision.current = result.revision;
         setData(next);
 
-        if (next !== result.data) {
-          enqueue(next);
-        }
-
         setReady(true);
       })
       .catch((e) => {
         if (mounted) {
           setError(e instanceof Error ? e.message : 'Не удалось открыть хранилище.');
+          setOutdated(e instanceof OutdatedStorage);
         }
       });
 
     return () => {
       mounted = false;
     };
-  }, [enqueue]);
+  }, []);
   const commit = useCallback(
     (next: AppData) => {
       latest.current = next;
@@ -136,6 +133,14 @@ export function useTable() {
     failure.current = null;
     enqueue(latest.current);
   }, [conflict, enqueue]);
+  const resetOutdated = useCallback(async () => {
+    if (!outdated || ready) {
+      return;
+    }
+
+    await repo.current.resetOutdated();
+    location.reload();
+  }, [outdated, ready]);
   const reload = useCallback(() => {
     location.reload();
   }, []);
@@ -562,6 +567,8 @@ export function useTable() {
   return {
     data,
     ready,
+    outdated,
+    resetOutdated,
     error,
     conflict,
     saving,

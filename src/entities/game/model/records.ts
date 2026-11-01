@@ -1,4 +1,4 @@
-import { makePlayer, statistics, upgradeDefaultColors } from './engine';
+import { makePlayer, statistics } from './engine';
 import type {
   AppData,
   ArchivedGame,
@@ -52,26 +52,25 @@ export const nameKey = (name: string) => cleanName(name).toLocaleLowerCase('ru')
 export const isManual = (game: ArchivedGame): game is Extract<ArchivedGame, { kind: 'manual' }> =>
   'kind' in game && game.kind === 'manual';
 
-/** IDs belong to people only in v2; legacy seat IDs are deliberately ignored. */
-export function bindPlayers(profiles: Profile[], players: Player[], legacy = false) {
+/** Participant IDs identify seats; profile IDs identify people. */
+export function bindPlayers(profiles: Profile[], players: Player[]) {
   const next = structuredClone(profiles);
   const bound = players.map((player) => {
-    let profile =
-      !legacy && player.profileId
-        ? next.find(
-            (p) => p.id === player.profileId || p.sourceIds?.includes(player.profileId as string),
-          )
-        : undefined;
+    let profile = player.profileId
+      ? next.find(
+          (p) => p.id === player.profileId || p.sourceIds?.includes(player.profileId as string),
+        )
+      : undefined;
 
     profile ??= next.find((p) => nameKey(p.name) === nameKey(player.name));
 
     if (!profile) {
       profile = {
-        id: legacy || !player.profileId ? crypto.randomUUID() : player.profileId,
+        id: player.profileId ?? crypto.randomUUID(),
         name: cleanName(player.name),
       };
       next.push(profile);
-    } else if (!legacy && player.profileId && profile.id !== player.profileId) {
+    } else if (player.profileId && profile.id !== player.profileId) {
       profile.sourceIds = [...new Set([...(profile.sourceIds ?? []), player.profileId])];
     }
 
@@ -79,36 +78,6 @@ export function bindPlayers(profiles: Profile[], players: Player[], legacy = fal
   });
 
   return { profiles: next, players: bound };
-}
-
-export function migrateData(legacy: Pick<AppData, 'settings' | 'current' | 'archive'>): AppData {
-  let profiles: Profile[] = [];
-
-  const bind = (players: Player[]) => {
-    const result = bindPlayers(profiles, players, true);
-
-    profiles = result.profiles;
-
-    return result.players;
-  };
-
-  const settings = {
-    ...upgradeDefaultColors(legacy.settings),
-    players: bind(upgradeDefaultColors(legacy.settings).players),
-  };
-  const archive = legacy.archive.map((entry) => ({
-    ...entry,
-    game: { ...entry.game, players: bind(entry.game.players) },
-  }));
-  let current = legacy.current
-    ? { ...legacy.current, players: bind(legacy.current.players) }
-    : null;
-
-  if (current?.undo) {
-    current = { ...current, undo: { ...current.undo, players: current.players } };
-  }
-
-  return { settings, archive, current, profiles, drafts: [] };
 }
 
 export function renameProfile(data: AppData, id: string, name: string): AppData {
@@ -192,7 +161,7 @@ export function compareFinish(game: ArchivedGame, a: string, b: string, reveal =
     }
   }
 
-  const order = game.lastRevealOrder ?? (!isManual(game) ? game.revealed : []);
+  const order = game.lastRevealOrder ?? [];
 
   if (reveal && order.includes(a) && order.includes(b)) {
     return { order: order.indexOf(b) - order.indexOf(a), reason: 'Более позднее раскрытие' };
@@ -218,7 +187,7 @@ export function suggestedRanks(game: ArchivedGame) {
   const ranks: Record<string, number> = {};
   const unresolved: string[][] = [];
   let position = 1;
-  const order = game.lastRevealOrder ?? (!isManual(game) ? game.revealed : []);
+  const order = game.lastRevealOrder ?? [];
 
   for (const group of groups) {
     if (group.length > 1 && !group.every((p) => order.includes(p.id))) {

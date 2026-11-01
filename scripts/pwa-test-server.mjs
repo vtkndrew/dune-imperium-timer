@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, cp } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join, extname, resolve, sep } from 'node:path';
@@ -10,13 +10,6 @@ import { build } from 'vite';
 const temp = await mkdtemp(join(tmpdir(), 'dune-imperium-timer-pwa-'));
 
 for (const version of ['one', 'two']) {
-  if (version === 'one' && process.env.PWA_BASELINE_DIR) {
-    await cp(resolve(process.env.PWA_BASELINE_DIR), join(temp, version), {
-      recursive: true,
-    });
-    continue;
-  }
-
   await build({
     logLevel: 'warn',
     plugins: [

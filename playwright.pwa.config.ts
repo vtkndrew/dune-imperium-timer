@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './pwa-tests',
-  testMatch: process.env.PWA_BASELINE_DIR ? '**/legacy-update.spec.ts' : '**/app.spec.ts',
+  testMatch: '**/app.spec.ts',
   outputDir: './test-results-pwa',
   fullyParallel: true,
   use: {

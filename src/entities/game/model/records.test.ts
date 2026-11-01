@@ -8,7 +8,6 @@ import {
   eloHistory,
   isManual,
   manualGame,
-  migrateData,
   playerSummary,
   prepareImport,
   renameProfile,
@@ -49,35 +48,7 @@ function fixture(count = 4) {
   return { game, data, profiles: bound.profiles };
 }
 
-describe('profiles and migration', () => {
-  it('groups names, not legacy seat IDs, without changing intervals', () => {
-    const settings = defaultSettings();
-
-    settings.players[0].name = '  Андрей  Петров ';
-    const first = transition(startGame(settings, 10), { type: 'finish' }, 1000);
-    const second = structuredClone(first);
-
-    second.id = 'other-game';
-    second.players[0].name = 'Борис';
-    second.players[1].name = 'АНДРЕЙ   ПЕТРОВ';
-    const migrated = migrateData({
-      settings,
-      current: null,
-      archive: [
-        { game: first, importedAt: null },
-        { game: second, importedAt: null },
-      ],
-    });
-    const [a, b] = migrated.archive.map((e) => e.game.players);
-
-    expect(a[0].profileId).toBe(b[1].profileId);
-    expect(a[0].profileId).not.toBe(b[0].profileId);
-    expect(migrated.archive[0].game).toMatchObject({
-      intervals: first.intervals,
-      players: first.players.map((p) => ({ id: p.id })),
-    });
-    expect(validData(migrated)).toBe(true);
-  });
+describe('profiles', () => {
   it('rename updates all snapshots, frees old name and respects stable import IDs', () => {
     const { data, game, profiles } = fixture();
 
@@ -231,7 +202,7 @@ describe('Elo and statistics', () => {
   });
 });
 
-it('round trips manual v2 without fake intervals; reads v1; rejects contradictory results', () => {
+it('round trips manual v2 without fake intervals; rejects old formats and contradictory results', () => {
   const { game } = fixture(2);
 
   expect(validRecord(game)).toBe(true);
@@ -240,9 +211,9 @@ it('round trips manual v2 without fake intervals; reads v1; rejects contradictor
   expect('intervals' in game).toBe(false);
   const old = transition(startGame(defaultSettings(), 1), { type: 'finish' }, 100);
 
-  expect(
+  expect(() =>
     parseGameFile(JSON.stringify({ app: 'dune-imperium-timer', formatVersion: 1, game: old })),
-  ).toEqual(old);
+  ).toThrow('JSON v2');
   const broken: ArchivedGame = { ...game, winnerIds: [game.players[1].id] };
 
   expect(validRecord(broken)).toBe(false);

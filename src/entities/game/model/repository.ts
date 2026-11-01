@@ -1,11 +1,18 @@
 import { StorageConflict } from '@/shared/lib';
 
 import { initialData } from './engine';
-import { migrateData } from './records';
 import type { AppData } from './types';
-import { validData, validLegacyData } from './validation';
+import { validData } from './validation';
 
 export const DATABASE = 'dune-imperium-timer:v1';
+export class OutdatedStorage extends Error {
+  constructor() {
+    super(
+      'Сохранённые тестовые данные используют устаревший формат. Автоматическое преобразование не поддерживается.',
+    );
+  }
+}
+
 export class GameRepository {
   private connection?: Promise<IDBDatabase>;
   private open(): Promise<IDBDatabase> {
@@ -24,65 +31,8 @@ export class GameRepository {
           return;
         }
 
-        const tx = request.transaction;
-
-        if (!tx) {
-          return;
-        }
-
-        const app = tx.objectStore('app');
-        const archives = tx.objectStore('archive');
-        const meta = app.get('meta');
-        const settings = app.get('settings');
-        const current = app.get('current');
-        const records = archives.getAll();
-
-        records.onsuccess = () => {
-          if (
-            meta.result === undefined &&
-            settings.result === undefined &&
-            current.result === undefined &&
-            !records.result.length
-          ) {
-            return;
-          }
-
-          try {
-            const legacy = {
-              settings: settings.result,
-              current: current.result,
-              archive: records.result,
-            };
-
-            if (
-              meta.result?.version !== 1 ||
-              !Number.isSafeInteger(meta.result.revision) ||
-              meta.result.revision < 1 ||
-              !validLegacyData(legacy)
-            ) {
-              throw new Error('Сохранение повреждено. Миграция отменена, данные не удалены.');
-            }
-
-            const next = migrateData(legacy);
-
-            if (!validData(next)) {
-              throw new Error('Не удалось преобразовать сохранение. Данные не удалены.');
-            }
-
-            app.put({ version: 2, revision: meta.result.revision + 1 }, 'meta');
-
-            for (const key of ['settings', 'current', 'profiles', 'drafts'] as const) {
-              app.put(next[key], key);
-            }
-
-            for (const entry of next.archive) {
-              archives.put(entry);
-            }
-          } catch (error) {
-            upgradeError = error instanceof Error ? error : new Error('Миграция не выполнена.');
-            tx.abort();
-          }
-        };
+        upgradeError = new OutdatedStorage();
+        request.transaction?.abort();
       };
 
       request.onerror = () => {
@@ -108,6 +58,104 @@ export class GameRepository {
     });
 
     return this.connection;
+  }
+  async resetOutdated(): Promise<void> {
+    (await this.connection?.catch(() => undefined))?.close();
+    this.connection = undefined;
+
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DATABASE, 2);
+      let cancelled = false;
+      let resetDuringUpgrade = false;
+
+      const reset = (tx: IDBTransaction, revision: number) => {
+        const app = tx.objectStore('app');
+        const data = initialData();
+
+        app.clear();
+        tx.objectStore('archive').clear();
+        app.put({ version: 2, revision }, 'meta');
+
+        for (const key of ['settings', 'current', 'profiles', 'drafts'] as const) {
+          app.put(data[key], key);
+        }
+      };
+
+      request.onblocked = () => {
+        cancelled = true;
+        reject(new Error('Сброс не выполнен. Закройте другие окна приложения и повторите.'));
+      };
+
+      request.onupgradeneeded = (event) => {
+        const tx = request.transaction;
+
+        if (!tx) {
+          return;
+        }
+
+        if (cancelled || event.oldVersion !== 1) {
+          tx.abort();
+
+          return;
+        }
+
+        try {
+          reset(tx, 1);
+          resetDuringUpgrade = true;
+        } catch (error) {
+          tx.abort();
+          reject(error);
+        }
+      };
+
+      request.onerror = () => reject(request.error ?? new Error('Не удалось сбросить данные.'));
+
+      request.onsuccess = () => {
+        const db = request.result;
+
+        if (cancelled) {
+          db.close();
+
+          return;
+        }
+
+        if (resetDuringUpgrade) {
+          db.close();
+          resolve();
+
+          return;
+        }
+
+        const tx = db.transaction(['app', 'archive'], 'readwrite');
+        const meta = tx.objectStore('app').get('meta');
+        let failure: unknown;
+
+        meta.onsuccess = () => {
+          try {
+            if (meta.result?.version !== 1) {
+              throw new Error('Формат данных изменился. Перезагрузите приложение перед сбросом.');
+            }
+
+            reset(tx, Number.isSafeInteger(meta.result.revision) ? meta.result.revision + 1 : 1);
+          } catch (error) {
+            failure = error;
+            tx.abort();
+          }
+        };
+
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+
+        tx.onabort = () => {
+          db.close();
+          reject(failure ?? tx.error ?? new Error('Сброс не выполнен.'));
+        };
+
+        tx.onerror = () => {};
+      };
+    });
   }
   async read(): Promise<{ revision: number; data: AppData }> {
     const db = await this.open();
@@ -136,6 +184,12 @@ export class GameRepository {
           archive.result.length === 0
         ) {
           resolve({ revision: 0, data: initialData() });
+
+          return;
+        }
+
+        if (meta.result?.version === 1) {
+          reject(new OutdatedStorage());
 
           return;
         }

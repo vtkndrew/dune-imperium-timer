@@ -284,62 +284,6 @@ test('failed stop freezes the exact end time in memory and retry saves the same 
   await expect(page.getByLabel('Победные очки', { exact: true })).toHaveValue('10');
 });
 
-test('v1 import after rename frees the old name and permits correcting the profile preview', async ({
-  page,
-}) => {
-  await twoPlayers(page);
-  await namePlayer(page, 1, 'Андрей');
-  await namePlayer(page, 2, 'Борис');
-  const before = await data(page);
-  const profileId = before.settings.players[0].profileId;
-  const legacy = await page.evaluate(async () => {
-    const { GameRepository, startGame, transition } = await import('/src/entities/game/index.ts');
-    const current = (await new GameRepository().read()).data;
-    const game = transition(startGame(current.settings, 1000), { type: 'finish' }, 2000);
-
-    return { app: 'dune-imperium-timer', formatVersion: 1, game };
-  });
-
-  await page.getByRole('button', { name: 'Статистика', exact: true }).click();
-  await page.getByRole('button').filter({ hasText: 'Андрей' }).click();
-  await page.getByRole('button', { name: 'Изменить имя' }).click();
-  await page.getByLabel('Новое имя').fill('Александр');
-  await page.getByRole('button', { name: 'Сохранить имя' }).click();
-  await page.getByRole('button', { name: 'История 0' }).click();
-  await page.getByLabel('Файл партии JSON').setInputFiles({
-    name: 'old-game.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(legacy)),
-  });
-  await expect(
-    page.getByRole('option', { name: 'Автоматически: Андрей', exact: true }),
-  ).toHaveCount(1);
-  await page.getByLabel('Профиль: Андрей', { exact: true }).selectOption(profileId);
-  await page.getByRole('button', { name: 'Добавить в историю', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
-  let saved = await data(page);
-
-  expect(saved.archive[0].game.players[0].profileId).toBe(profileId);
-  expect(saved.archive[0].game.players[0].name).toBe('Александр');
-  expect(saved.archive[0].game.intervals).toEqual(legacy.game.intervals);
-  expect(saved.profiles.some((p: any) => p.name === 'Андрей')).toBe(false);
-  legacy.game.id = 'another-old-game';
-  await page.getByRole('button', { name: 'История 1' }).click();
-  await page.getByLabel('Файл партии JSON').setInputFiles({
-    name: 'another-old-game.json',
-    mimeType: 'application/json',
-    buffer: Buffer.from(JSON.stringify(legacy)),
-  });
-  await page.getByRole('button', { name: 'Добавить в историю', exact: true }).click();
-  await expect(page.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
-  saved = await data(page);
-  const other = saved.archive.find((e: any) => e.game.id === legacy.game.id);
-
-  expect(other.game.players[0].profileId).not.toBe(profileId);
-  expect(other.game.players[0].name).toBe('Андрей');
-  expect(saved.current).toBeNull();
-});
-
 test('sand animation renders a readable result with real motion on mobile', async ({
   page,
 }, info) => {

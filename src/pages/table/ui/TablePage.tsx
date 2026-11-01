@@ -24,7 +24,16 @@ import { Dialog } from '@/shared/ui';
 import styles from './TablePage.module.css';
 
 type Modal =
-  'app' | 'finish' | 'ability' | 'adjust' | 'delete' | 'discard' | 'import' | 'reload' | null;
+  | 'app'
+  | 'finish'
+  | 'ability'
+  | 'adjust'
+  | 'delete'
+  | 'discard'
+  | 'import'
+  | 'reload'
+  | 'reset'
+  | null;
 
 export function TablePage() {
   const table = useTable();
@@ -254,6 +263,7 @@ export function TablePage() {
     discard: 'Удалить черновик?',
     import: 'Импорт партии',
     reload: 'Загрузить сохранённые данные',
+    reset: 'Сбросить тестовые данные?',
   };
 
   return (
@@ -304,7 +314,21 @@ export function TablePage() {
       {table.error && (
         <div className={styles.error} role="alert">
           <p>{table.error}</p>
-          <p>Несохранённые изменения остаются в этом окне.</p>
+          <p>
+            {table.ready
+              ? 'Несохранённые изменения остаются в этом окне.'
+              : 'Сохранённые данные не изменены.'}
+          </p>
+          {table.outdated && (
+            <button
+              onClick={(event) => {
+                event.currentTarget.focus();
+                setModal('reset');
+              }}
+            >
+              Сбросить тестовые данные
+            </button>
+          )}
           {table.conflict ? (
             <button onClick={() => setModal('reload')}>Загрузить актуальную версию</button>
           ) : (
@@ -321,7 +345,7 @@ export function TablePage() {
         </div>
       )}
       {!table.ready ? (
-        <p className={styles.loading}>Открываем ваш стол…</p>
+        !table.error && <p className={styles.loading}>Открываем ваш стол…</p>
       ) : (
         <>
           {tab === 'play' &&
@@ -399,6 +423,27 @@ export function TablePage() {
       </footer>
       {modal && (
         <Dialog title={title[modal]} onClose={close}>
+          {modal === 'reset' && (
+            <>
+              <p>
+                Будут удалены настройки, текущая партия, история, профили и черновики этого
+                приложения на этом устройстве. Скачанные JSON-файлы и данные других приложений
+                сохранятся.
+              </p>
+              <div className="actions">
+                <button
+                  className="danger"
+                  disabled={busy}
+                  onClick={() => void run(table.resetOutdated)}
+                >
+                  Сбросить и начать заново
+                </button>
+                <button disabled={busy} onClick={close}>
+                  Отмена
+                </button>
+              </div>
+            </>
+          )}
           {modal === 'app' && (
             <>
               <div className={styles.preferences}>
@@ -633,7 +678,7 @@ export function TablePage() {
           {modalError && (
             <div role="alert">
               <p>{modalError}</p>
-              {table.error && !table.conflict && (
+              {table.ready && table.error && !table.conflict && (
                 <button onClick={table.retry}>Повторить сохранение</button>
               )}
             </div>

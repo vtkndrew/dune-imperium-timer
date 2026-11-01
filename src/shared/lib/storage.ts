@@ -1,4 +1,4 @@
-// A small transactional primitive. Define domain schemas, drafts and migrations
+// A small transactional primitive. Define domain schemas, drafts and format checks
 // in entities; never accept unvalidated persisted input as application state.
 export type Stored<T> = { version: 1; revision: number; value: T };
 export class StorageConflict extends Error {

@@ -250,9 +250,7 @@ test('repeated activation has one result and unmount cancels pending callbacks',
   await expect(page.getByLabel('Герой игрока 1', { exact: true })).toHaveValue('paul');
 });
 
-test('palette save failure is retryable without touching custom colors or game snapshots', async ({
-  page,
-}) => {
+test('settings save failure is retryable without touching game snapshots', async ({ page }) => {
   await configure(page, 4);
   await page.getByRole('button', { name: 'Начать партию' }).click();
   await expect(page.getByText('Сохраняем…', { exact: true })).toHaveCount(0);
@@ -281,14 +279,17 @@ test('palette save failure is retryable without touching custom colors or game s
 
     IDBObjectStore.prototype.put = function (...args: Parameters<typeof original>) {
       if (args[1] === 'settings') {
-        throw new DOMException('Тест миграции: нет места', 'QuotaExceededError');
+        throw new DOMException('Тест настроек: нет места', 'QuotaExceededError');
       }
 
       return original.apply(this, args);
     };
   });
   await page.reload();
-  await expect(page.getByRole('alert')).toContainText('Тест миграции: нет места');
+  await page.getByRole('button', { name: 'Приложение', exact: true }).click();
+  await page.getByLabel('Звук при истечении времени').uncheck();
+  await page.getByRole('button', { name: 'Закрыть окно', exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Тест настроек: нет места');
   const read = () =>
     page.evaluate(async () => {
       const { GameRepository } = await import('/src/entities/game/index.ts');
@@ -304,7 +305,8 @@ test('palette save failure is retryable without touching custom colors or game s
 
   expect(after.current).toEqual(before.current);
   expect(after.archive).toEqual(before.archive);
-  expect(after.settings.players[0].color).toBe('#c43d35');
+  expect(after.settings.sound).toBe(false);
+  expect(after.settings.players[0].color).toBe('#a45539');
   expect(after.settings.players[1].color).toBe('#123456');
 });
 
