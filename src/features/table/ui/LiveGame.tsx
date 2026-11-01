@@ -100,7 +100,7 @@ export function LiveGame({
               <strong>{p.name}</strong>
               {game.first === i && (
                 <span role="img" title="Первый игрок" aria-label="Первый игрок">
-                  <SandwormIcon />
+                  <SandwormIcon size={24} />
                 </span>
               )}
             </div>

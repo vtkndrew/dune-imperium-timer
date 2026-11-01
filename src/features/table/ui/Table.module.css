@@ -307,6 +307,7 @@
 }
 .playerTile > div {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
 }
@@ -317,6 +318,7 @@
   text-overflow: ellipsis;
 }
 .playerTile > div span {
+  flex-shrink: 0;
   color: var(--accent);
   font-size: 14px;
 }

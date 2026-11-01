@@ -6,3 +6,10 @@
   display: inline-block;
   vertical-align: -0.25em;
 }
+
+.sandworm {
+  width: auto;
+  height: auto;
+  color: var(--accent);
+  vertical-align: middle;
+}
