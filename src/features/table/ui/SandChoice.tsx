@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Dialog } from '@/shared/ui';
 
 import styles from './SandChoice.module.css';
-import type { SandChoice as Choice } from '../model/useSandChoice';
+import { PHRASE_REVEAL_MS, type SandChoice as Choice } from '../model/useSandChoice';
 import type { WindParticle } from '../model/wind';
 
 export function SandChoice({ choice, onClose }: { choice: Choice; onClose: () => void }) {
@@ -41,7 +41,11 @@ export function SandChoice({ choice, onClose }: { choice: Choice; onClose: () =>
         <div role="status" className={styles.announcement}>
           {choice.settled ? `Выбран: ${choice.result}` : ''}
         </div>
-        <p className={styles.hint} style={{ visibility }} aria-hidden="true">
+        <p
+          className={styles.hint}
+          style={{ visibility, animationDuration: `${PHRASE_REVEAL_MS}ms` }}
+          aria-hidden="true"
+        >
           {choice.phrase}
         </p>
       </div>

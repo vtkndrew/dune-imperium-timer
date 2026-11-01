@@ -16,29 +16,15 @@ export function SandwormIcon({ className = '', ...props }: IconProps) {
       data-icon="sandworm"
     >
       <path
-        d="M27 28C20 29 10 26 8 18C6 12 9 8 14 7L20 12C14 12 13 16 15 20C17 24 23 25 27 28Z"
+        d="M27 29C16 30 6 24 7 16C7 12 10 9 14 8L22 15C16 14 13 16 14 20C15 25 21 26 27 29Z"
         fill="currentColor"
       />
+      <path d="M8 18L13 18M10 23L15 21M15 27L19 24" stroke="var(--surface)" strokeWidth="1.1" />
+      <circle cx="18" cy="10" r="8" fill="var(--surface)" stroke="currentColor" strokeWidth="2" />
+      <circle cx="18" cy="10" r="5.6" stroke="currentColor" strokeWidth="0.7" />
       <path
-        d="M9 17L14 16M10 21L16 20M13 24L19 23M18 27L23 25"
-        stroke="var(--surface)"
-        strokeWidth="1.2"
-      />
-      <ellipse
-        cx="17"
-        cy="8"
-        rx="6.5"
-        ry="4.5"
-        transform="rotate(32 17 8)"
-        fill="var(--surface)"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-      <path
-        d="M13 5L16 8L16 4M20 6L18 9L22 9M18 12L17 9L14 10"
-        stroke="currentColor"
-        strokeWidth="1.2"
-        strokeLinejoin="round"
+        d="M23.446 9.233L21.700 10.000L23.446 10.767ZM22.857 12.580L20.993 12.175L21.955 13.822ZM20.413 14.942L19.143 13.519L18.953 15.417ZM17.047 15.417L16.857 13.519L15.587 14.942ZM14.045 13.822L15.007 12.175L13.143 12.580ZM12.554 10.767L14.300 10.000L12.554 9.233ZM13.143 7.420L15.007 7.825L14.045 6.178ZM15.587 5.058L16.857 6.481L17.047 4.583ZM18.953 4.583L19.143 6.481L20.413 5.058ZM21.955 6.178L20.993 7.825L22.857 7.420Z"
+        fill="currentColor"
       />
     </svg>
   );

@@ -4,6 +4,9 @@ import { randomIndex } from './random';
 import { nextSandPhrase } from './sandPhrases';
 import { makeWindParticles, type WindParticle } from './wind';
 
+export const PHRASE_REVEAL_MS = 600;
+const RESULT_READING_MS = 3000;
+
 export interface SandChoice {
   title: string;
   phrase: string;
@@ -75,7 +78,9 @@ export function useSandChoice() {
           particles,
           finish: settle,
         });
-        current.timers.push(window.setTimeout(cancel, 3000));
+        current.timers.push(
+          window.setTimeout(cancel, RESULT_READING_MS + (reduced ? 0 : PHRASE_REVEAL_MS)),
+        );
       };
 
       setChoice({

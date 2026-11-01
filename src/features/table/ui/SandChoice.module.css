@@ -42,6 +42,25 @@
   font-size: 12px;
   color: var(--muted);
 }
+.sand[data-settled='true'] .hint {
+  -webkit-mask-image: linear-gradient(to right, #000 40%, transparent 60%);
+  mask-image: linear-gradient(to right, #000 40%, transparent 60%);
+  -webkit-mask-size: 250% 100%;
+  mask-size: 250% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: reveal-phrase ease-out both;
+}
+@keyframes reveal-phrase {
+  from {
+    -webkit-mask-position: 100% 0;
+    mask-position: 100% 0;
+  }
+  to {
+    -webkit-mask-position: 0% 0;
+    mask-position: 0% 0;
+  }
+}
 .particles {
   opacity: 1;
   transition: opacity 800ms ease-out;
@@ -76,6 +95,11 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .sand[data-settled='true'] .hint {
+    animation: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   .particles {
     display: none;
   }

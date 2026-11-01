@@ -151,7 +151,9 @@ test('sand choice commits once, cancels cleanly and returns focus', async ({ pag
 
   await expect(page.getByRole('dialog').getByRole('status')).toContainText('Выбран:');
   await page.screenshot({ path: info.outputPath('sand-result.png') });
-  await page.clock.runFor(3000);
+  await page.clock.runFor(3599);
+  await expect(page.getByRole('dialog')).toHaveCount(1);
+  await page.clock.runFor(1);
   await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(opener).toBeFocused();
   await opener.click();
