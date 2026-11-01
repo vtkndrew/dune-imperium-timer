@@ -249,7 +249,7 @@ export function LiveGame({
         <span>
           <SandwormIcon /> {game.players[game.first].name} — первый игрок
         </span>
-        <Button disabled={disabled} onClick={onFinish}>
+        <Button variant="ghost" disabled={disabled} onClick={onFinish}>
           Завершить партию
         </Button>
       </div>

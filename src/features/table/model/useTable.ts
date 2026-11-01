@@ -4,6 +4,7 @@ import {
   GameRepository,
   bindPlayers,
   cleanName,
+  colorConflicts,
   nameKey,
   renameProfile,
   manualGame,
@@ -214,6 +215,10 @@ export function useTable() {
   );
   const begin = useCallback(() => {
     if (atomic.current || latest.current.current || conflict) {
+      return;
+    }
+
+    if (Object.keys(colorConflicts(latest.current.settings.players)).length) {
       return;
     }
 

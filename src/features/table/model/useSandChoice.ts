@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { randomIndex } from './random';
 import { nextSandPhrase } from './sandPhrases';
+import { makeWindParticles, type WindParticle } from './wind';
 
 export interface SandChoice {
   title: string;
@@ -10,7 +11,7 @@ export interface SandChoice {
   result: string;
   settled: boolean;
   reduced: boolean;
-  particles: { x: number; y: number; dx: number; dy: number; duration: number; delay: number }[];
+  particles: WindParticle[];
   finish: () => void;
 }
 
@@ -54,16 +55,7 @@ export function useSandChoice() {
 
       frames.push(names[index]);
       // Decorative randomness is sampled after the winner and never enters its selection.
-      const particles = reduced
-        ? []
-        : Array.from({ length: 24 }, () => ({
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            dx: (Math.random() - 0.5) * 160,
-            dy: (Math.random() - 0.5) * 120,
-            duration: 1200 + Math.random() * 1600,
-            delay: -Math.random() * 2400,
-          }));
+      const particles = reduced ? [] : makeWindParticles();
       let completed = false;
 
       const settle = () => {

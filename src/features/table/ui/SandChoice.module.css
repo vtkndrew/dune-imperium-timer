@@ -43,6 +43,8 @@
   color: var(--muted);
 }
 .particles {
+  opacity: 1;
+  transition: opacity 800ms ease-out;
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -54,10 +56,9 @@
   border-radius: 50%;
   background: #b58240;
   opacity: 0.35;
-  animation: drift linear alternate infinite;
 }
-.sand[data-settled='true'] .particles i {
-  animation-play-state: paused;
+.sand[data-settled='true'] .particles {
+  opacity: 0;
 }
 .announcement {
   position: absolute;
@@ -72,14 +73,6 @@
   }
   to {
     transform: translateY(-1728px);
-  }
-}
-@keyframes drift {
-  from {
-    transform: translate(0, 0);
-  }
-  to {
-    transform: translate(var(--dx), var(--dy));
   }
 }
 @media (prefers-reduced-motion: reduce) {

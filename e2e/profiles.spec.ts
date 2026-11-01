@@ -296,8 +296,8 @@ test('sand animation renders a readable result with real motion on mobile', asyn
   );
   await page.screenshot({ path: info.outputPath('sand-moving-390.png') });
   await expect(page.locator('[data-settled=true]')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Готово', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Готово', exact: true })).toHaveCount(0);
   await page.screenshot({ path: info.outputPath('sand-result-390.png') });
-  await page.getByRole('button', { name: 'Готово', exact: true }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 4000 });
   await expect(random).toBeFocused();
 });

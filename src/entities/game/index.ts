@@ -4,3 +4,4 @@ export * from './model/engine';
 export * from './model/validation';
 export * from './model/repository';
 export * from './model/records';
+export * from './model/setupValidation';

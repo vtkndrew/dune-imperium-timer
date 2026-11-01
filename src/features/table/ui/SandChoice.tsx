@@ -1,29 +1,16 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useRef } from 'react';
 
-import { Button, Dialog } from '@/shared/ui';
+import { Dialog } from '@/shared/ui';
 
 import styles from './SandChoice.module.css';
 import type { SandChoice as Choice } from '../model/useSandChoice';
+import type { WindParticle } from '../model/wind';
 
 export function SandChoice({ choice, onClose }: { choice: Choice; onClose: () => void }) {
   const visibility = choice.settled ? 'visible' : 'hidden';
 
   return (
-    <Dialog
-      title={choice.title}
-      onClose={onClose}
-      actions={
-        <Button
-          variant="primary"
-          onClick={onClose}
-          style={{ visibility }}
-          aria-hidden={!choice.settled}
-          tabIndex={choice.settled ? 0 : -1}
-        >
-          Готово
-        </Button>
-      }
-    >
+    <Dialog title={choice.title} onClose={onClose}>
       <div className={styles.sand} data-settled={choice.settled}>
         <p className={styles.caption} aria-hidden="true">
           ПЕСКИ СУДЬБЫ
@@ -47,19 +34,7 @@ export function SandChoice({ choice, onClose }: { choice: Choice; onClose: () =>
         {!choice.reduced && (
           <div className={styles.particles} aria-hidden="true">
             {choice.particles.map((particle, i) => (
-              <i
-                key={i}
-                style={
-                  {
-                    left: `${particle.x}%`,
-                    top: `${particle.y}%`,
-                    '--dx': `${particle.dx}px`,
-                    '--dy': `${particle.dy}px`,
-                    animationDuration: `${particle.duration}ms`,
-                    animationDelay: `${particle.delay}ms`,
-                  } as CSSProperties
-                }
-              />
+              <SandParticle key={i} particle={particle} />
             ))}
           </div>
         )}
@@ -72,4 +47,22 @@ export function SandChoice({ choice, onClose }: { choice: Choice; onClose: () =>
       </div>
     </Dialog>
   );
+}
+
+function SandParticle({ particle }: { particle: WindParticle }) {
+  const ref = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const animation = ref.current?.animate(particle.frames, {
+      duration: particle.duration,
+      delay: -particle.phase,
+      easing: 'cubic-bezier(0.42, 0, 0.58, 1)',
+      fill: 'both',
+      iterations: 1,
+    });
+
+    return () => animation?.cancel();
+  }, [particle]);
+
+  return <i ref={ref} style={{ left: `${particle.x}%`, top: `${particle.y}%` }} />;
 }

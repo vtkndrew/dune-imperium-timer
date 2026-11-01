@@ -95,8 +95,8 @@ for (const [width, height] of [
     const ribbon = dialog.locator('[class*=ribbon]');
     const done = dialog.getByRole('button', { name: 'Готово', includeHidden: true });
 
-    await expect(done).toBeHidden();
-    await expect(done).toHaveAttribute('tabindex', '-1');
+    await expect(done).toHaveCount(0);
+    await expect(dialog.locator('[data-ui=actions]')).toHaveCount(0);
     const geometry = () =>
       dialog.evaluate((node) =>
         [
@@ -121,19 +121,46 @@ for (const [width, height] of [
     await expect(dialog.locator('[data-settled=true]')).toBeVisible();
     expect(await ribbon.evaluate((node) => node === (window as any).originalRibbon)).toBe(true);
     expect(await geometry()).toEqual(before);
-    await expect(done).toBeVisible();
-    await expect(done).toHaveAttribute('tabindex', '0');
+    await expect(done).toHaveCount(0);
     const particles = () =>
       dialog
         .locator('[class*=particles] i')
         .evaluateAll((nodes) => nodes.map((n) => getComputedStyle(n).transform));
-    const frozen = await particles();
+    const moving = await particles();
+    const opacity = await dialog.locator('[class*=particles]').evaluate((node) => {
+      const fade = node
+        .getAnimations()
+        .find((a) => a instanceof CSSTransition && a.transitionProperty === 'opacity');
+
+      if (!fade) {
+        throw new Error('Missing particle fade transition');
+      }
+
+      fade.pause();
+      fade.currentTime = 400;
+      const halfway = Number(getComputedStyle(node).opacity);
+
+      fade.finish();
+
+      return halfway;
+    });
+
+    expect(opacity).toBeGreaterThan(0);
+    expect(opacity).toBeLessThan(1);
 
     await page.waitForTimeout(150);
-    expect(await particles()).toEqual(frozen);
-    await gap(dialog.locator('[class*=sand]'), done, 16);
+    expect(await particles()).not.toEqual(moving);
+    await expect(dialog.locator('[class*=particles]')).toHaveCSS('opacity', '0');
+    expect(
+      await dialog
+        .locator('[class*=particles] i')
+        .evaluateAll((nodes) => nodes.every((n) => n.getAnimations()[0]?.playState === 'running')),
+    ).toBe(true);
     await page.screenshot({ path: info.outputPath(`settled-${width}.png`) });
-    await done.click();
+    await expect(dialog).toHaveCount(0, { timeout: 4000 });
+    await expect(
+      page.getByRole('button', { name: 'Случайный герой', exact: true }).first(),
+    ).toBeFocused();
   });
 }
 

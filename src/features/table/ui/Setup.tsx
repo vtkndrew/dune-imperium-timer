@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import {
   COLORS,
+  colorConflicts,
   HEROES,
   heroFor,
   makePlayer,
@@ -35,6 +36,8 @@ export function Setup({
   const random = useSandChoice();
   const [picker, setPicker] = useState<{ index: number; kind: 'profile' | 'color' } | null>(null);
   const unique = new Set(draft.players.map((p) => nameKey(p.name))).size === draft.players.length;
+  const conflicts = colorConflicts(draft.players);
+  const hasColorConflicts = Object.keys(conflicts).length > 0;
   const closePicker = useCallback(() => setPicker(null), []);
 
   const change = useCallback(
@@ -167,7 +170,13 @@ export function Setup({
       </div>
       <div className={styles.playerForms}>
         {draft.players.map((player, i) => (
-          <Stack as="fieldset" gap={12} key={player.id} className={styles.playerForm}>
+          <Stack
+            as="fieldset"
+            gap={12}
+            key={player.id}
+            className={styles.playerForm}
+            data-color-conflict={Boolean(conflicts[player.id])}
+          >
             <legend>
               <span style={{ background: player.color }} className={styles.dot} />
               Место {i + 1}
@@ -189,6 +198,7 @@ export function Setup({
               </Button>
               <Button
                 aria-label={`Цвет игрока ${i + 1}`}
+                aria-describedby={conflicts[player.id] ? `color-conflict-${player.id}` : undefined}
                 style={{ background: player.color, minWidth: 44, padding: 0 }}
                 onClick={(e) => {
                   e.currentTarget.focus();
@@ -198,6 +208,11 @@ export function Setup({
                 <span aria-hidden="true">◇</span>
               </Button>
             </div>
+            {conflicts[player.id] && (
+              <p id={`color-conflict-${player.id}`} className={styles.colorError}>
+                Этот цвет выбран ещё у {conflicts[player.id].map((other) => other.name).join(', ')}.
+              </p>
+            )}
             <Field>
               Герой
               <Select
@@ -304,12 +319,15 @@ export function Setup({
           </p>
         ))}
       </details>
+      {hasColorConflicts && (
+        <p role="alert">Для начала партии выберите каждому игроку отдельный цвет</p>
+      )}
       {!unique && <p role="alert">Выберите разных игроков: имена должны быть уникальны.</p>}
       {!validSettings(draft) && <p role="alert">Укажите имена и целое число минут от 1 до 1440.</p>}
       <Button
         variant="primary"
         className={styles.start}
-        disabled={disabled || !unique || !validSettings(draft)}
+        disabled={disabled || !unique || hasColorConflicts || !validSettings(draft)}
         onClick={onStart}
       >
         Начать партию <span>→</span>
