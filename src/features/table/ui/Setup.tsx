@@ -6,6 +6,7 @@ import {
   HEROES,
   heroFor,
   makePlayer,
+  nextPlayerColor,
   nameKey,
   validSettings,
   type Settings,
@@ -75,13 +76,17 @@ export function Setup({
     const players = draft.players.slice(0, amount);
 
     while (players.length < amount) {
-      players.push(makePlayer(players.length, draft.minutes));
+      players.push({
+        ...makePlayer(players.length, draft.minutes),
+        color: nextPlayerColor(players, amount),
+      });
     }
 
     const available = COLORS.slice(0, amount > 4 ? 6 : 4);
-    const colored = players.map((p, i) =>
-      available.includes(p.color) ? p : { ...p, color: COLORS[i] },
-    );
+    const colored =
+      amount >= draft.players.length
+        ? players
+        : players.map((p, i) => (available.includes(p.color) ? p : { ...p, color: COLORS[i] }));
 
     change({ ...draft, players: colored, first: Math.min(draft.first, amount - 1) });
   };

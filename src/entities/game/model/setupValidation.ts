@@ -1,3 +1,4 @@
+import { COLORS } from './engine';
 import type { Player } from './types';
 
 // A preparation constraint, deliberately separate from persisted-data validation.
@@ -15,4 +16,15 @@ export function colorConflicts(players: readonly Player[]): Record<string, Playe
   }
 
   return conflicts;
+}
+
+export function nextPlayerColor(players: readonly Pick<Player, 'color'>[], count: number): string {
+  const used = new Set(players.map((player) => player.color.toLowerCase()));
+  const color = COLORS.slice(0, count > 4 ? 6 : 4).find((candidate) => !used.has(candidate));
+
+  if (!color) {
+    throw new Error('No available color for another player');
+  }
+
+  return color;
 }

@@ -11,6 +11,7 @@ import {
   heroFor,
   isManual,
   makePlayer,
+  nextPlayerColor,
   resultProblems,
   suggestedRanks,
   type ArchivedGame,
@@ -122,16 +123,22 @@ export function ResultEditor({
     const players = game.players.slice(0, count);
 
     while (players.length < count) {
-      players.push(makePlayer(players.length));
+      players.push({
+        ...makePlayer(players.length),
+        color: nextPlayerColor(players, count),
+      });
     }
 
     const ids = new Set(players.map((p) => p.id));
 
     patch({
       ...game,
-      players: players.map((p, i) =>
-        COLORS.slice(0, count > 4 ? 6 : 4).includes(p.color) ? p : { ...p, color: COLORS[i] },
-      ),
+      players:
+        count >= game.players.length
+          ? players
+          : players.map((p, i) =>
+              COLORS.slice(0, count > 4 ? 6 : 4).includes(p.color) ? p : { ...p, color: COLORS[i] },
+            ),
       finals: Object.fromEntries(Object.entries(game.finals ?? {}).filter(([id]) => ids.has(id))),
       rankings: {},
       sharedPlacesConfirmed: false,
