@@ -204,12 +204,21 @@ export function Setup({
             <legend>
               <span style={{ background: player.color }} className={styles.dot} />
               Место {i + 1}
-              {draft.first === i && (
-                <span className={styles.firstBadge}>
-                  <SandwormIcon /> Первый
-                </span>
-              )}
+              <span
+                className={`${styles.firstBadge} ${styles.firstBadgeLegend}`}
+                data-first-player={draft.first === i}
+                aria-hidden={draft.first !== i}
+              >
+                <SandwormIcon /> <span>Первый</span>
+              </span>
             </legend>
+            <div
+              className={`${styles.firstBadge} ${styles.firstBadgeRow}`}
+              data-first-player={draft.first === i}
+              aria-hidden={draft.first !== i}
+            >
+              <SandwormIcon /> <span>Первый</span>
+            </div>
             <div className={styles.nameColor}>
               <Button
                 aria-label={`Имя игрока ${i + 1}`}

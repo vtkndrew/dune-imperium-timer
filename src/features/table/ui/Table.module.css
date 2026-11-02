@@ -132,9 +132,26 @@
   margin-right: 6px;
 }
 .firstBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
   font-size: 9px;
+  font-weight: 700;
   color: var(--accent);
+}
+.firstBadge svg {
+  margin: 0;
+}
+.firstBadge[data-first-player='false'] {
+  visibility: hidden;
+}
+.firstBadgeLegend {
+  display: none;
   margin-left: 8px;
+}
+.firstBadgeRow {
+  align-self: flex-start;
 }
 .playerForm label {
   font-size: 10px;
@@ -576,6 +593,12 @@
   font-variant-numeric: tabular-nums;
 }
 @media (min-width: 700px) {
+  .firstBadgeLegend {
+    display: inline-flex;
+  }
+  .firstBadgeRow {
+    display: none;
+  }
   .playerForms {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -598,10 +621,6 @@
   }
   .playerForm {
     padding: 9px;
-  }
-  .firstBadge {
-    display: block;
-    margin: 2px 0;
   }
   .presets button {
     font-size: 10px;

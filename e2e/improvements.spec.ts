@@ -14,6 +14,138 @@ async function configure(page: Page, count: number) {
 }
 
 for (const count of [2, 3, 4, 5, 6]) {
+  test(`setup first-player marker keeps ${count} cards aligned`, async ({ page }, info) => {
+    await configure(page, count);
+    const cards = page.locator('fieldset[data-color-conflict]');
+    const select = page.getByLabel('Первый игрок', { exact: true });
+    const positions = () =>
+      cards.evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const box = (element: Element) => {
+            const r = element.getBoundingClientRect();
+
+            return { x: r.x + scrollX, y: r.y + scrollY, width: r.width, height: r.height };
+          };
+
+          return {
+            card: box(node),
+            fields: [...node.querySelectorAll('button, input, select')].map(box),
+          };
+        }),
+      );
+
+    const checkMarker = async (width: number) => {
+      const visible = cards.locator('[data-first-player="true"]:visible');
+
+      await expect(visible).toHaveCount(1);
+      const geometry = await visible.evaluate((node) => {
+        const iconNode = node.querySelector('svg');
+        const textNode = node.querySelector('span');
+        const card = node.closest('fieldset');
+        const fieldNode = card?.querySelector('button');
+        const legendNode = card?.querySelector('legend');
+
+        if (!iconNode || !textNode || !card || !fieldNode || !legendNode) {
+          throw new Error('Missing setup marker structure');
+        }
+
+        const icon = iconNode.getBoundingClientRect();
+        const text = textNode.getBoundingClientRect();
+        const rect = node.getBoundingClientRect();
+        const cardRect = card.getBoundingClientRect();
+        const field = fieldNode.getBoundingClientRect();
+        const legend = legendNode.getBoundingClientRect();
+
+        return {
+          iconWidth: icon.width,
+          iconHeight: icon.height,
+          gap: text.left - icon.right,
+          centers: [icon.top + icon.height / 2, text.top + text.height / 2],
+          contained: rect.left >= cardRect.left && rect.right <= cardRect.right,
+          beforeField: rect.bottom <= field.top,
+          belowLegend: rect.top >= legend.bottom,
+          inLegend: node.parentElement?.tagName === 'LEGEND',
+        };
+      });
+
+      expect(geometry.iconWidth).toBe(18);
+      expect(geometry.iconHeight).toBe(18);
+      expect(geometry.gap).toBeCloseTo(4, 1);
+      expect(geometry.centers[0]).toBeCloseTo(geometry.centers[1], 1);
+      expect(geometry.contained).toBe(true);
+      expect(geometry.beforeField).toBe(true);
+      expect(geometry.inLegend).toBe(width >= 700);
+
+      if (width < 700) {
+        expect(geometry.belowLegend).toBe(true);
+      }
+
+      const inactive = cards.locator('[data-first-player="false"]');
+
+      for (const badge of await inactive.all()) {
+        await expect(badge).toBeHidden();
+        await expect(badge).toHaveAttribute('aria-hidden', 'true');
+      }
+
+      const rowPositions = await positions();
+      const columns = width < 700 ? 2 : 3;
+
+      for (let i = 0; i < Math.min(columns, count); i++) {
+        expect(rowPositions[i].fields[0].y).toBeCloseTo(rowPositions[0].fields[0].y, 1);
+      }
+    };
+
+    for (const width of [320, 360, 390, 412, 699, 700, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      await select.selectOption('0');
+      await checkMarker(width);
+      const before = await positions();
+
+      await select.selectOption(String(count - 1));
+      await checkMarker(width);
+      expect(await positions()).toEqual(before);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+
+      if (count === 4 && [320, 390, 700, 1280].includes(width)) {
+        await page.screenshot({
+          path: info.outputPath(`setup-marker-${width}.png`),
+          fullPage: true,
+        });
+      }
+    }
+
+    if (count === 4) {
+      await page.getByRole('button', { name: 'Имя игрока 1', exact: true }).click();
+      await page
+        .getByLabel('Поиск или имя нового игрока')
+        .fill('Очень длинное имя путешественника Арракиса');
+      await page.getByRole('button', { name: /^Новый игрок:/ }).click();
+      await page.addStyleTag({
+        content:
+          'fieldset[data-color-conflict] legend { font-size: 16.5px } [data-first-player] { font-size: 13.5px }',
+      });
+
+      for (const width of [320, 390, 700, 1280]) {
+        await page.setViewportSize({ width, height: 844 });
+        await select.selectOption('0');
+        await checkMarker(width);
+        const before = await positions();
+
+        await select.selectOption('1');
+        await checkMarker(width);
+        expect(await positions()).toEqual(before);
+        await page.screenshot({
+          path: info.outputPath(`setup-marker-large-text-${width}.png`),
+          fullPage: true,
+        });
+      }
+    }
+  });
+}
+
+for (const count of [2, 3, 4, 5, 6]) {
   test(`fixed clockwise seats for ${count} players at every screen size`, async ({
     page,
   }, info) => {
