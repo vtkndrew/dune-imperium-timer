@@ -55,6 +55,17 @@ for (const count of [2, 3, 4, 5, 6]) {
         const cardRect = card.getBoundingClientRect();
         const field = fieldNode.getBoundingClientRect();
         const legend = legendNode.getBoundingClientRect();
+        const seat = legendNode.querySelector('[data-seat-label]');
+
+        if (!seat) {
+          throw new Error('Missing seat label');
+        }
+
+        const headerCenters = [...seat.children, iconNode, textNode].map((element) => {
+          const r = element.getBoundingClientRect();
+
+          return r.top + r.height / 2;
+        });
 
         return {
           iconWidth: icon.width,
@@ -64,7 +75,9 @@ for (const count of [2, 3, 4, 5, 6]) {
           contained: rect.left >= cardRect.left && rect.right <= cardRect.right,
           beforeField: rect.bottom <= field.top,
           belowLegend: rect.top >= legend.bottom,
-          inLegend: node.parentElement?.tagName === 'LEGEND',
+          inLegend: Boolean(node.closest('legend')),
+          headerCenters,
+          headerGap: rect.left - seat.getBoundingClientRect().right,
         };
       });
 
@@ -78,6 +91,11 @@ for (const count of [2, 3, 4, 5, 6]) {
 
       if (width < 700) {
         expect(geometry.belowLegend).toBe(true);
+      } else {
+        expect(
+          Math.max(...geometry.headerCenters) - Math.min(...geometry.headerCenters),
+        ).toBeLessThanOrEqual(1);
+        expect(geometry.headerGap).toBeCloseTo(8, 1);
       }
 
       const inactive = cards.locator('[data-first-player="false"]');
@@ -95,7 +113,7 @@ for (const count of [2, 3, 4, 5, 6]) {
       }
     };
 
-    for (const width of [320, 360, 390, 412, 699, 700, 1280]) {
+    for (const width of [320, 360, 390, 412, 699, 700, 1024, 1280]) {
       await page.setViewportSize({ width, height: 844 });
       await select.selectOption('0');
       await checkMarker(width);
@@ -108,7 +126,13 @@ for (const count of [2, 3, 4, 5, 6]) {
         true,
       );
 
-      if (count === 4 && [320, 390, 700, 1280].includes(width)) {
+      if (count === 4 && [320, 390, 699, 700, 1024, 1280].includes(width)) {
+        await cards
+          .nth(count - 1)
+          .locator('legend')
+          .screenshot({
+            path: info.outputPath(`setup-heading-${width}.png`),
+          });
         await page.screenshot({
           path: info.outputPath(`setup-marker-${width}.png`),
           fullPage: true,
@@ -127,7 +151,7 @@ for (const count of [2, 3, 4, 5, 6]) {
           'fieldset[data-color-conflict] legend { font-size: 16.5px } [data-first-player] { font-size: 13.5px }',
       });
 
-      for (const width of [320, 390, 700, 1280]) {
+      for (const width of [320, 390, 699, 700, 1024, 1280]) {
         await page.setViewportSize({ width, height: 844 });
         await select.selectOption('0');
         await checkMarker(width);
@@ -136,6 +160,12 @@ for (const count of [2, 3, 4, 5, 6]) {
         await select.selectOption('1');
         await checkMarker(width);
         expect(await positions()).toEqual(before);
+        await cards
+          .nth(1)
+          .locator('legend')
+          .screenshot({
+            path: info.outputPath(`setup-heading-large-text-${width}.png`),
+          });
         await page.screenshot({
           path: info.outputPath(`setup-marker-large-text-${width}.png`),
           fullPage: true,

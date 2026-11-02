@@ -202,14 +202,18 @@ export function Setup({
             data-color-conflict={Boolean(conflicts[player.id])}
           >
             <legend>
-              <span style={{ background: player.color }} className={styles.dot} />
-              Место {i + 1}
-              <span
-                className={`${styles.firstBadge} ${styles.firstBadgeLegend}`}
-                data-first-player={draft.first === i}
-                aria-hidden={draft.first !== i}
-              >
-                <SandwormIcon /> <span>Первый</span>
+              <span className={styles.legendRow}>
+                <span className={styles.placeLabel} data-seat-label>
+                  <span style={{ background: player.color }} className={styles.dot} />
+                  <span>Место {i + 1}</span>
+                </span>
+                <span
+                  className={`${styles.firstBadge} ${styles.firstBadgeLegend}`}
+                  data-first-player={draft.first === i}
+                  aria-hidden={draft.first !== i}
+                >
+                  <SandwormIcon /> <span>Первый</span>
+                </span>
               </span>
             </legend>
             <div

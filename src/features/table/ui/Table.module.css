@@ -148,7 +148,6 @@
 }
 .firstBadgeLegend {
   display: none;
-  margin-left: 8px;
 }
 .firstBadgeRow {
   align-self: flex-start;
@@ -593,6 +592,21 @@
   font-variant-numeric: tabular-nums;
 }
 @media (min-width: 700px) {
+  .legendRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .placeLabel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .placeLabel .dot {
+    margin: 0;
+    flex-shrink: 0;
+  }
   .firstBadgeLegend {
     display: inline-flex;
   }
