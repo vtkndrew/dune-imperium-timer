@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 
 import {
   COLORS,
+  EXPANSION_NAMES,
   colorConflicts,
   HEROES,
   heroFor,
@@ -266,8 +267,12 @@ export function Setup({
                   playerChange(i, { heroId: hero.id, heroName: hero.name });
                 }}
               >
-                {['База', 'Икс', 'Кровные узы'].map((set) => (
-                  <optgroup key={set} label={set}>
+                {[
+                  { set: 'База', name: 'База' },
+                  { set: 'Икс', name: EXPANSION_NAMES.ix },
+                  { set: 'Кровные узы', name: EXPANSION_NAMES.bloodlines },
+                ].map(({ set, name }) => (
+                  <optgroup key={set} label={name}>
                     {HEROES.filter((hero) => hero.set === set).map((hero) => (
                       <option key={hero.id} value={hero.id}>
                         {hero.name}
@@ -357,9 +362,9 @@ export function Setup({
           личным решениям героев. В эпическом режиме сначала раздайте всем стартовые интриги.
         </p>
         <p>
-          В наборе: база, Икс, Бессмертие и совместимые герои «Кровных уз». Для Коты нужны
-          технологии. Автоматический соперник — Дом Хагаль — не поддерживается. Командные правила
-          «Восстания» не учитываются.
+          В наборе: база, «{EXPANSION_NAMES.ix}», Бессмертие и совместимые герои «Кровных уз». Для
+          Коты нужны технологии. Автоматический соперник — Дом Хагаль — не поддерживается. Командные
+          правила «Восстания» не учитываются.
         </p>
         {draft.players.map((p) => (
           <p key={p.id}>

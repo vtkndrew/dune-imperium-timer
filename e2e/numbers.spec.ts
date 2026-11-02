@@ -151,7 +151,7 @@ test('manual decimals, optional omissions and removed expansion errors', async (
 
   await expect(save).toBeEnabled();
   await page.getByText('Настройки партии — дополнения', { exact: true }).click();
-  await page.getByLabel('Икс', { exact: true }).check();
+  await page.getByLabel('Расцвет Иксианцев', { exact: true }).check();
   const card = page.locator('[data-player-id]').first();
 
   await card.getByText('Дополнительная статистика', { exact: true }).click();
@@ -160,7 +160,7 @@ test('manual decimals, optional omissions and removed expansion errors', async (
   await card.getByLabel('Вода', { exact: true }).fill('0');
   await card.getByLabel('Приобретённые дредноуты', { exact: true }).fill('-1');
   await expect(save).toBeDisabled();
-  await page.getByLabel('Икс', { exact: true }).uncheck();
+  await page.getByLabel('Расцвет Иксианцев', { exact: true }).uncheck();
   await expect(save).toBeEnabled();
   const saved = await data(page);
   const game = saved.drafts[0].game;

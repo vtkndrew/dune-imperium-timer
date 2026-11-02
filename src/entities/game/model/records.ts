@@ -1,11 +1,15 @@
 import { makePlayer, statistics } from './engine';
 import type { AppData, ArchivedGame, Expansion, MetricKey, Player, Profile } from './types';
 
-export const EXPANSIONS: { id: Expansion; name: string }[] = [
-  { id: 'ix', name: 'Икс' },
-  { id: 'immortality', name: 'Бессмертие' },
-  { id: 'bloodlines', name: 'Кровные узы' },
-];
+export const EXPANSION_NAMES = {
+  ix: 'Расцвет Иксианцев',
+  immortality: 'Бессмертие',
+  bloodlines: 'Кровные узы',
+} satisfies Record<Expansion, string>;
+
+export const EXPANSIONS: { id: Expansion; name: string }[] = Object.entries(EXPANSION_NAMES).map(
+  ([id, name]) => ({ id: id as Expansion, name }),
+);
 export const METRICS: {
   key: MetricKey;
   label: string;

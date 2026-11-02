@@ -25,6 +25,6 @@
 | yrkoon  | [Планшет](https://dunecardshub.com/images/bloodlines-leader-steersman-y-rkoon.webp)           | setup: 4 из 5 навигационных карт и порядок; условия влияния вручную                                             |
 | kota    | [Планшет](https://dunecardshub.com/images/bloodlines-leader-kota-odax-of-ix.webp)             | setup: выбрать одну из нижних технологий трёх стопок                                                            |
 
-Официальные уточнения: [FAQ](https://d19y2ttatozxjp.cloudfront.net/pdfs/DUNE_IMPERIUM_FAQ_25-1-13.pdf), [Ix](https://d19y2ttatozxjp.cloudfront.net/pdfs/DUNE_IMPERIUM_RISE_OF_IX_Rulebook_22-2-11.pdf), [Bloodlines](https://d19y2ttatozxjp.cloudfront.net/pdfs/DUNE_IMPERIUM_BLOODLINES_Rulebook.pdf).
+Официальные уточнения: [FAQ](https://d19y2ttatozxjp.cloudfront.net/pdfs/DUNE_IMPERIUM_FAQ_25-1-13.pdf), [Расцвет Иксианцев](https://d19y2ttatozxjp.cloudfront.net/pdfs/DUNE_IMPERIUM_RISE_OF_IX_Rulebook_22-2-11.pdf), [Bloodlines](https://d19y2ttatozxjp.cloudfront.net/pdfs/DUNE_IMPERIUM_BLOODLINES_Rulebook.pdf).
 
 Из Bloodlines исключены Count Hasimir Fenring, Gaius Helen Mohiam, Liet Kynes; Й’ркун не использует навигационную карту со шпионом; Коте требуются технологии. Для 5–6 участников таймер не выдумывает значение жетона Чани: используйте согласованные домашние правила. Полный аудит всех интриг, навигации и технологий не входит в справочник; личные реакции на них обслуживает кнопка «Способность».

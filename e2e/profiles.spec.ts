@@ -125,9 +125,30 @@ test('manual games without a timer round trip v2 and leave measured averages unk
   browser,
 }, info) => {
   await twoPlayers(page);
+  const expansionName = 'Расцвет Иксианцев';
+
+  await page.getByLabel(expansionName, { exact: true }).check();
+  await expect(
+    page
+      .getByLabel('Герой игрока 1', { exact: true })
+      .locator('optgroup')
+      .filter({ has: page.locator('option[value="rhombur"]') }),
+  ).toHaveAttribute('label', expansionName);
+
+  for (const width of [320, 390, 1280]) {
+    await page.setViewportSize({ width, height: 844 });
+    await page.getByLabel(expansionName, { exact: true }).scrollIntoViewIfNeeded();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await page.screenshot({ path: info.outputPath(`expansion-setup-${width}.png`) });
+  }
+
   await page.getByRole('button', { name: 'История 0' }).click();
   await page.getByRole('button', { name: '＋ Добавить партию вручную' }).click();
   await expect(page.getByLabel('Без таймера')).toBeChecked();
+  await page.getByText('Настройки партии — дополнения', { exact: true }).click();
+  await page.getByLabel(expansionName, { exact: true }).check();
 
   for (const width of [320, 390, 844, 1280]) {
     await page.setViewportSize({ width, height: width === 844 ? 390 : 844 });
@@ -152,6 +173,8 @@ test('manual games without a timer round trip v2 and leave measured averages unk
   const saved = await data(page);
   const game = saved.archive[0].game;
 
+  expect(game.expansions).toEqual(['ix']);
+  await expect(page.getByText(/База · Расцвет Иксианцев/)).toBeVisible();
   expect(game.kind).toBe('manual');
   expect(game.timing.kind).toBe('none');
   expect(game.intervals).toBeUndefined();
@@ -172,17 +195,27 @@ test('manual games without a timer round trip v2 and leave measured averages unk
     await other.getByRole('button', { name: 'Добавить в историю', exact: true }).click();
     await expect(other.getByRole('heading', { name: 'Партия завершена.' })).toBeVisible();
     expect((await data(other)).archive[0].game).toEqual(game);
+    await expect(other.getByText(/База · Расцвет Иксианцев/)).toBeVisible();
   } finally {
     await context.close();
   }
 
   await page.getByRole('button', { name: 'Статистика', exact: true }).click();
+  const sets = page.getByLabel('Наборы', { exact: true });
+
+  await expect(sets.locator('option[value="ix"]')).toHaveText('С дополнением „Расцвет Иксианцев“');
+  await sets.selectOption('ix');
+  await expect(sets).toHaveAccessibleDescription(expansionName);
 
   for (const width of [320, 390, 844, 1280]) {
     await page.setViewportSize({ width, height: width === 844 ? 390 : 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
+    await sets.scrollIntoViewIfNeeded();
+    await expect(
+      page.getByText(expansionName, { exact: true }).filter({ visible: true }),
+    ).toBeVisible();
     await page.screenshot({ path: info.outputPath(`statistics-${width}.png`) });
   }
 
@@ -203,7 +236,7 @@ test('manual summary timing and expansion fields are preserved; draft deletion k
   await page.getByRole('button', { name: '＋ Добавить партию вручную' }).click();
   await page.getByLabel('Без таймера').uncheck();
   await page.getByText('Настройки партии — дополнения', { exact: true }).click();
-  await page.getByLabel('Икс', { exact: true }).check();
+  await page.getByLabel('Расцвет Иксианцев', { exact: true }).check();
   await page.getByLabel('Бессмертие', { exact: true }).check();
   await page.getByLabel('Кровные узы', { exact: true }).check();
 

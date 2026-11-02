@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 
 import {
   HEROES,
+  EXPANSION_NAMES,
   METRICS,
   eloHistory,
   formatTime,
@@ -146,7 +147,7 @@ export function PlayerStatistics({
             ))}
           </Select>
         </Field>
-        <Field>
+        <Field hint={expansion === 'ix' ? EXPANSION_NAMES.ix : undefined}>
           Наборы
           <Select
             aria-label="Наборы"
@@ -155,7 +156,7 @@ export function PlayerStatistics({
           >
             <option value="">Все</option>
             <option value="base">Только база</option>
-            <option value="ix">С Иксом</option>
+            <option value="ix">С дополнением „{EXPANSION_NAMES.ix}“</option>
             <option value="immortality">С Бессмертием</option>
             <option value="bloodlines">С Кровными узами</option>
             <option value="unknown">Не указаны</option>
